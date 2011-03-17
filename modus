@@ -1129,13 +1129,15 @@ meta::retriever('sdocp', <<'__fef74cd94fa8761618662802f0bfc171');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __fef74cd94fa8761618662802f0bfc171
-meta::sdoc('js::modus.history', <<'__41cb9eac0d587574c44063f47ee05c55');
+meta::sdoc('js::modus.history', <<'__8db58d6fcbd625ab8456b090d3bbc9e2');
 History and bookmarks | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
 Introduction.
-AJAX applications often use the location hash as a way to persist client session state. This has the advantage that 
-__41cb9eac0d587574c44063f47ee05c55
+AJAX applications often use the location hash as a way to persist client session state. This has the advantage that users can both navigate through the history stack using standard browser
+commands, and they can bookmark and share individual states. It also works to varying degrees with all browsers, unlike HTML5 history. The downside is that it's arguably clunkier than
+necessary.
+__8db58d6fcbd625ab8456b090d3bbc9e2
 internal::main();
 
 __END__
