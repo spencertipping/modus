@@ -1543,39 +1543,6 @@ meta::retriever('sdocp', <<'__fef74cd94fa8761618662802f0bfc171');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __fef74cd94fa8761618662802f0bfc171
-meta::sdoc('js::modus.history', <<'__8db58d6fcbd625ab8456b090d3bbc9e2');
-History and bookmarks | Spencer Tipping
-Licensed under the terms of the MIT source code license
-
-Introduction.
-AJAX applications often use the location hash as a way to persist client session state. This has the advantage that users can both navigate through the history stack using standard browser
-commands, and they can bookmark and share individual states. It also works to varying degrees with all browsers, unlike HTML5 history. The downside is that it's arguably clunkier than
-necessary.
-__8db58d6fcbd625ab8456b090d3bbc9e2
-meta::sdoc('js::modus.mss', <<'__4176998ff77bb4be9f01c2d43ed7a465');
-Modus stylesheet language | Spencer Tipping
-Licensed under the terms of the MIT source code license
-
-Introduction.
-MSS is very similar to CSS, except that it provides a way to abstract over common patterns. It also provides behavioral extensions such as motion description, interpolation formulas, etc.
-Unlike CSS, MSS doesn't match at the document level. It's generated along with the HTML elements themselves, and this is all bundled together into a stylesheet. In this sense stylesheets are
-functions from semantics into DOM-level objects.
-
-MSS definitions.
-In addition to the usual CSS things like border, image, etc, MSS supports definitions about animations, physics, and other motion-related behavior. For example, here's an MSS definition for a
-button built on a div:
-
-| modus(html[div.custom_button], {'.custom_button':       {border: 'solid 1px transparent'},
-                                  '.custom_button:hover': {borderColor: '#888', transition: {easing: 'swing', duration: 380}, left: '20px'}})
-__4176998ff77bb4be9f01c2d43ed7a465
-meta::sdoc('js::modus.page', <<'__7851abbe007d85efe395aaf36becb8fa');
-Modus page driver | Spencer Tipping
-Licensed under the terms of the MIT source code license
-
-Introduction.
-The page driver manages component placement within a page. It creates a root component to contain other components, binds that root component to the window's URL (thus managing history), and
-manages component layout by propagating resize events.
-__7851abbe007d85efe395aaf36becb8fa
 internal::main();
 
 __END__
