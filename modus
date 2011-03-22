@@ -174,6 +174,7 @@ meta::meta('type::meta', <<'__640f25635ce2365b0648962918cf9932');
 
 meta::configure 'meta', extension => '.pl', inherit => 1;
 __640f25635ce2365b0648962918cf9932
+meta::meta('type::note', 'meta::functor::editable \'note\', extension => \'.sdoc\', inherit => 0, default => \'edit\';');
 meta::meta('type::parent', <<'__607e9931309b1b595424bedcee5dfa45');
 meta::define_form 'parent', \&meta::bootstrap::implementation;
 meta::configure 'parent', extension => '', inherit => 1;
@@ -896,6 +897,11 @@ with_exported(@$sources, sub {
   hook('bin/after-node-custom', @$node_args, $_[0], @args);
 });
 __accbe0c73db6f402198448fd92d5f515
+meta::function('note', <<'__bcbfeac6dd2112f47296265444570a6e');
+# Creates a note with a given name, useful for jotting things down.
+create("note::$_[0]");
+__bcbfeac6dd2112f47296265444570a6e
+meta::function('notes', 'ls(\'-a\', \'^note::\');');
 meta::function('parents', 'join "\\n", grep s/^parent:://o, sort keys %data;');
 meta::function('perl', <<'__986a274c013b77fe08d29726ce3799fe');
 my $result = eval(join ' ', @_);
@@ -1536,6 +1542,109 @@ parent::/home/spencertipping/bin/object
 retriever::sdoc
 retriever::sdocp
 __2d47795f5a2f946e1655dcc68b32aadd
+meta::parent('notes', <<'__885245820bcb60424dfcbd480e5b966e');
+function::note
+function::notes
+meta::type::note
+parent::object
+__885245820bcb60424dfcbd480e5b966e
+meta::parent('object', <<'__ebddf828b1c914a7461db84c344b9ebd');
+bootstrap::initialization
+bootstrap::perldoc
+function::alias
+function::cat
+function::cc
+function::child
+function::clone
+function::cp
+function::create
+function::current-state
+function::disable
+function::edit
+function::enable
+function::export
+function::extern
+function::grep
+function::hash
+function::hook
+function::hooks
+function::identity
+function::import
+function::initial-state
+function::is
+function::load-state
+function::lock
+function::ls
+function::mv
+function::name
+function::parents
+function::perl
+function::reload
+function::rm
+function::save
+function::save-state
+function::serialize
+function::serialize_single
+function::sh
+function::shell
+function::size
+function::snapshot
+function::state
+function::touch
+function::unlock
+function::update
+function::update-from
+function::usage
+function::verify
+internal_function::around_hook
+internal_function::associate
+internal_function::attribute
+internal_function::chmod_self
+internal_function::dangerous
+internal_function::debug_trace
+internal_function::execute
+internal_function::exported
+internal_function::extension_for
+internal_function::fast_hash
+internal_function::file::read
+internal_function::file::write
+internal_function::fnv_hash
+internal_function::hypothetically
+internal_function::internal::main
+internal_function::invoke_editor_on
+internal_function::is_locked
+internal_function::namespace
+internal_function::retrieve
+internal_function::retrieve_with_hooks
+internal_function::select_keys
+internal_function::separate_options
+internal_function::strip
+internal_function::table_display
+internal_function::temporary_name
+internal_function::translate_backtrace
+internal_function::with_exported
+library::terminal
+message_color::state
+message_color::states
+meta::configure
+meta::externalize
+meta::functor::editable
+meta::type::alias
+meta::type::bootstrap
+meta::type::data
+meta::type::function
+meta::type::hook
+meta::type::inc
+meta::type::internal_function
+meta::type::library
+meta::type::message_color
+meta::type::meta
+meta::type::parent
+meta::type::retriever
+meta::type::state
+retriever::file
+retriever::id
+__ebddf828b1c914a7461db84c344b9ebd
 meta::retriever('file', '-f $_[0] ? file::read($_[0]) : undef;');
 meta::retriever('id', '$_[0] =~ /^id::/ ? substr($_[0], 4) : undef;');
 meta::retriever('sdoc', 'exists $data{"sdoc::$_[0]"} ? sdoc("sdoc::$_[0]") : undef;');
