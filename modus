@@ -1422,11 +1422,14 @@ emphasizes generation over configuration. In particular, Modus solves (or tries 
   3. Providing component combinators. These manage the logic of wrapping stuff in containers and generating new components.
   4. Providing a page-state monad and synchronizing it with the URL hash. This is the hard part, as it involves bidirectional event propagation.
 __3ae2d5227a2d6d79edb827cdbc7bb990
-meta::note('time', <<'__bb561806e0c07e9e00dd690d9324876c');
+meta::note('time', <<'__c142fe00eebee49aad8fffc724dc74a0');
 Representing time.
 Time is a first-class entity and it's global. Because of this, it's possible to do stuff like going back in time in addition to forwards (provided that you have the state of the UI in the
 past). This makes undoing stuff very simple; you just go back in time. You can take a state in the past and set it to the present if you'd like.
-__bb561806e0c07e9e00dd690d9324876c
+
+There's an obvious question here: how is time integrated into the picture? If it's a DOM-level thing, then we need an isomorphism to get DOM state into regular data structures; if it's a
+higher-level thing then we might lose precision with animations and such, breaking the experience for the user.
+__c142fe00eebee49aad8fffc724dc74a0
 meta::parent('/home/spencertipping/bin/configuration', <<'__511208c99d8bc2caa3067db9f1824163');
 meta::type::configuration
 parent::/home/spencertipping/bin/object
