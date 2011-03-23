@@ -660,7 +660,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 __3c6177256de0fddb721f534c3ad8c0ee
 meta::data('main', 'server.js');
-meta::data('name', 'node-base');
 meta::data('quiet', '1');
 meta::data('watching', '1');
 meta::function('alias', <<'__ea18a693d64c2a14659f0a3edd20a3fa');
@@ -1413,6 +1412,21 @@ meta::message_color('state', 'purple');
 meta::message_color('states', 'yellow');
 meta::message_color('test', 'purple');
 meta::message_color('watch', 'blue');
+meta::note('purpose', <<'__3ae2d5227a2d6d79edb827cdbc7bb990');
+Purpose of Modus.
+Modus exists to take the thoughtwork out of writing rich web UIs. Unlike a lot of libraries that focus on providing an object-oriented widget library, Modus takes a functional approach that
+emphasizes generation over configuration. In particular, Modus solves (or tries to solve) these problems:
+
+| 1. Writing CSS. I don't mind if all of my apps look the same, so I'd rather factor CSS out of the picture. Modus provides a way to style elements independently of CSS and with abstraction.
+  2. Managing delays, including animation. The framework should connect events together in a fluid way, managing the state of components while they are in transition.
+  3. Providing component combinators. These manage the logic of wrapping stuff in containers and generating new components.
+  4. Providing a page-state monad and synchronizing it with the URL hash. This is the hard part, as it involves bidirectional event propagation.
+__3ae2d5227a2d6d79edb827cdbc7bb990
+meta::note('time', <<'__bb561806e0c07e9e00dd690d9324876c');
+Representing time.
+Time is a first-class entity and it's global. Because of this, it's possible to do stuff like going back in time in addition to forwards (provided that you have the state of the UI in the
+past). This makes undoing stuff very simple; you just go back in time. You can take a state in the past and set it to the present if you'd like.
+__bb561806e0c07e9e00dd690d9324876c
 meta::parent('/home/spencertipping/bin/configuration', <<'__511208c99d8bc2caa3067db9f1824163');
 meta::type::configuration
 parent::/home/spencertipping/bin/object
