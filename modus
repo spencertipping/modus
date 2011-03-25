@@ -1417,6 +1417,11 @@ Using Canvas with Modus.
 I think it would be very cool to provide a Canvas backend for Modus. The components it provides should be sufficiently high-level that this is an option that can be transparently used. In
 particular, it would be great to have scaling, rapid animation, cloning, and maybe even simulated 3D rotation. I think it's worth a shot.
 __bc4e0e7c1258038df1c16941a4219f44
+meta::note('frp', <<'__d616c50d3eba984be072e6444ea96854');
+Functional reactive programming.
+I'm not sure if I need FRP in a formal way, but ideally Modus will build a progressive bijection of UI state with time. A question is how much information it takes to progressively define this
+function, and how to store it as a cumulative total. (This is actually a very difficult question.)
+__d616c50d3eba984be072e6444ea96854
 meta::note('model', <<'__88957f05dbeb928412e9f4b1a1524c73');
 What is a component.
 A component's state is the Cartesian product of its inherited values and its time-dependent state. For example, a tab component has a width and height inherited from its container but its
@@ -1436,7 +1441,7 @@ emphasizes generation over configuration. In particular, Modus solves (or tries 
   3. Providing component combinators. These manage the logic of wrapping stuff in containers and generating new components.
   4. Providing a page-state monad and synchronizing it with the URL hash. This is the hard part, as it involves bidirectional event propagation.
 __3ae2d5227a2d6d79edb827cdbc7bb990
-meta::note('time', <<'__64f60864b5e9db1e9241abc4b4349771');
+meta::note('time', <<'__a2b4087ed4318007cac73beecd093e77');
 Representing time.
 Time is a first-class entity and it's global. Because of this, it's possible to do stuff like going back in time in addition to forwards (provided that you have the state of the UI in the
 past). This makes undoing stuff very simple; you just go back in time. You can take a state in the past and set it to the present if you'd like.
@@ -1447,8 +1452,8 @@ higher-level thing then we might lose precision with animations and such, breaki
 Note: See the 'model' note for an updated discussion. This problem is solved by treating time as one component of a state.
 
 All events are edge-triggered. This preserves the usual event model, but also allows querying later on. For any event to be considered part of time, it must support some kind of group
-semantics. (i.e. associative, inverses, and identity.)
-__64f60864b5e9db1e9241abc4b4349771
+semantics. (i.e. associative, inverses, and identity.) Actually, identity and associativity are both optional, so we have a quasigroup.
+__a2b4087ed4318007cac73beecd093e77
 meta::parent('/home/spencertipping/bin/configuration', <<'__511208c99d8bc2caa3067db9f1824163');
 meta::type::configuration
 parent::/home/spencertipping/bin/object
