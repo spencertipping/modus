@@ -786,18 +786,6 @@ my ($attribute, @criteria) = @_;
 my ($options, @stuff) = separate_options(@criteria);
 grep $_ eq $attribute, select_keys(%$options);
 __5d4fddb72b0715694b83aa0c925a8d04
-meta::function('lib', <<'__1fdcdc3310118791c100b533f6c11070');
-# Regenerates lib/ directory
-hook('bin/before-lib');
-hook('bin/before-lib-clean');
-rm($_) for grep /^js::dependency::/, keys %data;
-hook('bin/after-lib-clean');
-
-hook('bin/before-lib-download');
-qx|cd lib && wget -nv $_| for split /\n+/, libraries();
-hook('bin/after-lib-download');
-hook('bin/after-lib');
-__1fdcdc3310118791c100b533f6c11070
 meta::function('load-state', <<'__ea18db867bd62a294e067f60e6975dcf');
 around_hook('load-state', @_, sub {
   my ($state_name) = @_;
@@ -815,8 +803,10 @@ around_hook('load-state', @_, sub {
   reload();
   verify()});
 __ea18db867bd62a294e067f60e6975dcf
-meta::function('loc', <<'__ce427fbd35d560bbcc08f542f56a306a');
+meta::function('loc', <<'__5a1885d8e743dd80dcda866050f84434');
 # Counts SLOC, whitespace, and total LOC in the codebase.
+hook('before-loc', @_);
+
 my $criteria    = join '|', @_;
 my @attributes  = grep s/^sdoc:://, select_keys('--criteria' => $criteria);
 my $tcomments   = 0;
@@ -837,7 +827,9 @@ my $loc = sub {
 
 terminal::info(map &$loc($_), @attributes);
 terminal::info(&$line($tsource, $twhitespace, $tcomments, 'total'));
-__ce427fbd35d560bbcc08f542f56a306a
+
+hook('after-loc', @_);
+__5a1885d8e743dd80dcda866050f84434
 meta::function('lock', 'hook(\'lock\', chmod_self(sub {$_[0] & 0555}));');
 meta::function('ls', <<'__acdc3ca5777ab9c7c430d493a7555998');
 my ($options, @criteria) = separate_options(@_);
@@ -862,7 +854,6 @@ join "\n", map strip($_), split /\n/, table_display($all ? [@definitions] : [gre
                                                     $sizes ? ([@sizes]) : (), $flags ? ([@flags]) : ());
 __acdc3ca5777ab9c7c430d493a7555998
 meta::function('ls-a', 'ls(\'-ad\', @_);');
-meta::function('lss', '# Attribute function::lss');
 meta::function('mv', <<'__52e95180e3c7019116bd798e0da0fdda');
 my ($from, $to) = @_;
 die "'$from' does not exist" unless exists $data{$from};
@@ -874,28 +865,28 @@ my $name = $0;
 $name =~ s/^.*\///;
 $name;
 __6848cbc257e4b6d7441b25acb04e23c9
-meta::function('node', <<'__0dbdfd4cc670051c20430f7ff167ccab');
+meta::function('node', <<'__3522fde8f76947a5f70bca33f1ee0016');
 # Runs node on a collection of source files and arguments. The format is:
 # node([@source_strings], @process_args);
 my ($sources, @args) = @_;
 
 with_exported(@$sources, sub {
-  hook('bin/before-node', $_[0], @args);
+  hook('before-node', $_[0], @args);
   sh('node', $_[0], @args);
-  hook('bin/after-node', $_[0], @args);
+  hook('after-node', $_[0], @args);
 });
-__0dbdfd4cc670051c20430f7ff167ccab
-meta::function('node-custom', <<'__accbe0c73db6f402198448fd92d5f515');
+__3522fde8f76947a5f70bca33f1ee0016
+meta::function('node-custom', <<'__c2f4063798c997ec7f78a3543b1240b3');
 # Runs node on a collection of source files and arguments. The format is:
 # &{'node-custom'}([@source_strings], [@node_arguments], @process_args);
 my ($sources, $node_args, @args) = @_;
 
 with_exported(@$sources, sub {
-  hook('bin/before-node-custom', @$node_args, $_[0], @args);
+  hook('before-node-custom', @$node_args, $_[0], @args);
   sh('node', @$node_args, $_[0], @args);
-  hook('bin/after-node-custom', @$node_args, $_[0], @args);
+  hook('after-node-custom', @$node_args, $_[0], @args);
 });
-__accbe0c73db6f402198448fd92d5f515
+__c2f4063798c997ec7f78a3543b1240b3
 meta::function('note', <<'__bcbfeac6dd2112f47296265444570a6e');
 # Creates a note with a given name, useful for jotting things down.
 create("note::$_[0]");
@@ -907,20 +898,12 @@ my $result = eval(join ' ', @_);
 $@ ? terminal::error($@) : $result;
 __986a274c013b77fe08d29726ce3799fe
 meta::function('reload', 'around_hook(\'reload\', sub {execute($_) for grep ! /^bootstrap::/, keys %data});');
-meta::function('render', 'file::write(attribute($_) . \'.js\', retrieve($_), mkpath => 1) for grep s/^sdoc::js::/js::/ || /^js::/, keys %data;');
-meta::function('repl', <<'__31ce26877d3622ecdda1025b308ae6aa');
-# Runs a REPL of your source, minus the webserver.
-render();
-hook('bin/before-repl');
-
-my $repl_base = retrieve('data::repl-base') or die 'You need to define data::main-base to be a newline-separated list of files to load for the REPL.';
-
-my ($file, $name) = ('/tmp/' . state() . '-repl.js', name());
-file::write($file, -f 'repl.js' ? 'repl.js' : "id::require('repl').start('$name> ')");
-node([split(/ /, $repl_base), $file]);
-
-hook('bin/after-repl');
-__31ce26877d3622ecdda1025b308ae6aa
+meta::function('render', <<'__d11b6e7522980db1022b1ccd575bdc30');
+hook('before-render');
+file::write(attribute($_) .            '.js',       retrieve($_), mkpath => 1) for grep s/^sdoc::js::/js::/ || /^js::/, keys %data;
+file::write(attribute(attribute($_)) . '.js.sdocp', retrieve($_), mkpath => 1) for grep s/^sdoc::js::/sdocp::js::/, keys %data;
+hook('after-render');
+__d11b6e7522980db1022b1ccd575bdc30
 meta::function('rm', <<'__7cecfb1691a7bf86741f00058bcc54ca');
 around_hook('rm', @_, sub {
   exists $data{$_} or terminal::warning("$_ does not exist") for @_;
@@ -1412,6 +1395,41 @@ meta::message_color('state', 'purple');
 meta::message_color('states', 'yellow');
 meta::message_color('test', 'purple');
 meta::message_color('watch', 'blue');
+meta::note('behavior', <<'__5cccd0391936e3b4d4d063ac55a1b82a');
+Behavior of nodes.
+Some questions need to be asked. First: Why do we need non-jQuery behavior for nodes? Second: How are node hierarchies behavior-specialized? In particular, how does composition work? Third:
+How do nodes use Modus to hook into the global time function?
+
+Use case for behavior.
+The obvious case is for things like serialization. For example:
+
+| person(p) = html[div.person(input.name /val(p.name))]                                 // What is the inverse?
+  person(p) = html[div(input /modus().from('name')) /modus('person')]                   // Something like this might help
+
+In the first case it isn't clear how to get the name back from a person UI object. In the second case we've bound the field to a data element, and presumably Modus knows how to back-convert it
+to a regular value. Because Modus wraps the entire div, we have the nice property that:
+
+| person(p).val() == p          // Assuming that we call it val()
+
+Behavior specialization.
+Ideally we want to compose Modus entities, and perhaps overlay certain things. Modus exists for the purpose of automating jQuery tasks, so this is fairly natural thing to want to do. For
+instance:
+
+| profile(p) = html[div[person(p.person), whatever_else] /modus('profile')]
+
+Presumably Modus detects the nesting and does something useful. So in this case we have hierarchical composition of structural behaviors. But more subtle things happen when we want to assign
+more complex behaviors. For example, suppose we want some kind of jQuery UI-style interaction on an element:
+
+| profile(p) = html[div[...] /modus('profile') /draggable() /resizable() /has_title_bar()]
+
+Ideally 'profile' inherits from some behavior that does all of this for us:
+
+| modus('window_like').is('draggable resizable titled'),
+  modus('profile').is('window_like'),
+  profile(p) = html[div[...] /modus('profile')]                 // Inherits automatically, or some such
+
+Naturally a whole micro-world of metaprogramming would spring up here. Functors are clearly useful for situations like this.
+__5cccd0391936e3b4d4d063ac55a1b82a
 meta::note('canvas', <<'__bc4e0e7c1258038df1c16941a4219f44');
 Using Canvas with Modus.
 I think it would be very cool to provide a Canvas backend for Modus. The components it provides should be sufficiently high-level that this is an option that can be transparently used. In
@@ -1422,6 +1440,11 @@ Functional reactive programming.
 I'm not sure if I need FRP in a formal way, but ideally Modus will build a progressive bijection of UI state with time. A question is how much information it takes to progressively define this
 function, and how to store it as a cumulative total. (This is actually a very difficult question.)
 __d616c50d3eba984be072e6444ea96854
+meta::note('mechanism', <<'__ec069f727bc5b2ccec85f4fbd361a273');
+Mechanism of integration.
+Modus should be an extension method of jQuery. The semantics are to construct a Modus wrapper for a jQuery object. This gives the user the advantage that one of many behaviors can be assigned,
+and it creates an obvious point to hook into the global Modus time function. (So free undo's, essentially.)
+__ec069f727bc5b2ccec85f4fbd361a273
 meta::note('model', <<'__88957f05dbeb928412e9f4b1a1524c73');
 What is a component.
 A component's state is the Cartesian product of its inherited values and its time-dependent state. For example, a tab component has a width and height inherited from its container but its
@@ -1458,20 +1481,18 @@ meta::parent('/home/spencertipping/bin/configuration', <<'__511208c99d8bc2caa306
 meta::type::configuration
 parent::/home/spencertipping/bin/object
 __511208c99d8bc2caa3067db9f1824163
-meta::parent('/home/spencertipping/bin/node-base', <<'__384732ad24be298a4346bb0dd8a044df');
-function::lib
+meta::parent('/home/spencertipping/bin/node-base', <<'__cb3ede4ac84dd70a220e31df5e90c4d6');
 function::loc
 function::node
 function::node-custom
 function::render
-function::repl
 function::run-forever
 internal_function::dep
 message_color::test
 meta::type::js
 parent::/home/spencertipping/bin/repository
 parent::/home/spencertipping/conjectures/perl-objects/sdoc
-__384732ad24be298a4346bb0dd8a044df
+__cb3ede4ac84dd70a220e31df5e90c4d6
 meta::parent('/home/spencertipping/bin/object', <<'__ebddf828b1c914a7461db84c344b9ebd');
 bootstrap::initialization
 bootstrap::perldoc
@@ -1574,15 +1595,14 @@ function::dupdate
 meta::type::cached_dependency
 parent::/home/spencertipping/bin/configuration
 __f88c2b0e5725507b3fdb5719fd65e6d3
-meta::parent('/home/spencertipping/conjectures/perl-objects/sdoc', <<'__2d47795f5a2f946e1655dcc68b32aadd');
-function::lss
+meta::parent('/home/spencertipping/conjectures/perl-objects/sdoc', <<'__6b80e7e220f0ce19851eaf5bb9cf2fc7');
 function::sdoc
 function::sdocp
 meta::type::sdoc
 parent::/home/spencertipping/bin/object
 retriever::sdoc
 retriever::sdocp
-__2d47795f5a2f946e1655dcc68b32aadd
+__6b80e7e220f0ce19851eaf5bb9cf2fc7
 meta::parent('notes', <<'__885245820bcb60424dfcbd480e5b966e');
 function::note
 function::notes
