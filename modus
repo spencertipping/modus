@@ -206,6 +206,7 @@ meta::configure 'state', inherit => 0, extension => '.pl';
 meta::define_form 'state', \&meta::bootstrap::implementation;
 __c1f29670be26f1df6100ffe4334e1202
 meta::meta('type::watch', 'meta::functor::editable \'watch\', prefix => \'watch::\', inherit => 1, extension => \'.pl\', default => \'cat\';');
+meta::alias('ec', 'edit sdoc::js::modus.core');
 meta::alias('ehist', 'edit sdoc::js::modus.history');
 meta::alias('ems', 'edit sdoc::js::modus.mss');
 meta::alias('epage', 'edit sdoc::js::modus.page');
@@ -1713,6 +1714,42 @@ meta::retriever('sdocp', <<'__fef74cd94fa8761618662802f0bfc171');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __fef74cd94fa8761618662802f0bfc171
+meta::sdoc('js::modus.core', <<'__6b1d24d66032a30a419d56a298930aa7');
+Modus core structure | Spencer Tipping
+Licensed under the terms of the MIT source code license
+
+Introduction.
+This file defines the Modus global and jQuery method. Modus inherits from Caterwaul sequences, perhaps counterintuitively -- this is for a good reason. Modus is similar to jQuery in that it
+gives you a selection interface; unlike jQuery, however, it is largely nonuniform in the methods that it supports. It also operates at a very different level of abstraction.
+
+caterwaul.clone('std seq continuation')(function () {
+  modus = modus_global,
+
+  // Restore the original value of the 'modus' global
+  modus.deglobalize() = modus /se[modus = _modus],
+
+Behavioral definitions.
+This is the mechanism responsible for defining behaviors and inheritance. At this point everything is abstract; the behavior function is invoked when a DOM tree is assigned that behavior. So,
+for example:
+
+| html[div /modus('person')]    // Calls this: modus.behaviors.person(html[div])
+
+  modus.behaviors         = {},
+  modus.behavior(name, f) = modus /se[modus.behaviors[name] = f],
+
+JQuery integration.
+I mentioned in the introduction that Modus inherits from a Caterwaul sequence. The reason for this is twofold. First, Modus should support the usual map/fold/etc. operations on its component
+nodes (in this case generally one, but ideally Modus distributes over collections in some meaningful way). Second, more importantly, Modus objects need to be recognizable to the
+Montenegro-extended jQuery append(), before(), after(), and prepend(). The simplest way to make those methods recognize Modus objects is to make Modus objects sequences of the elements that
+they contain.
+
+TODO for Spencer: Think about additional meaning behind using a sequence. It seems like there should be some...
+
+  modus.prototype = new caterwaul.seq.finite(),
+
+  where*[_modus         = modus,
+         modus_global() = modus_global.init.apply(this, arguments)]})();
+__6b1d24d66032a30a419d56a298930aa7
 internal::main();
 
 __END__
