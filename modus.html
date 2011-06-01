@@ -224,6 +224,7 @@ meta::define_form 'template', sub {
 };
 __
 meta::meta('type::watch', 'meta::functor::editable \'watch\', prefix => \'watch::\', inherit => 1, extension => \'.pl\', default => \'cat\';');
+meta::alias('e', 'edit sdoc::js::modus.core');
 meta::alias('ec', 'edit sdoc::js::modus.core');
 meta::alias('ehist', 'edit sdoc::js::modus.history');
 meta::alias('ems', 'edit sdoc::js::modus.mss');
@@ -1663,88 +1664,6 @@ meta::message_color('state', 'purple');
 meta::message_color('states', 'yellow');
 meta::message_color('test', 'purple');
 meta::message_color('watch', 'blue');
-meta::note('behavior', <<'__');
-Behavior of nodes.
-Some questions need to be asked. First: Why do we need non-jQuery behavior for nodes? Second: How are node hierarchies behavior-specialized? In particular, how does composition work? Third:
-How do nodes use Modus to hook into the global time function?
-
-Use case for behavior.
-The obvious case is for things like serialization. For example:
-
-| person(p) = html[div.person(input.name /val(p.name))]                                 // What is the inverse?
-  person(p) = html[div(input /modus().from('name')) /modus('person')]                   // Something like this might help
-
-In the first case it isn't clear how to get the name back from a person UI object. In the second case we've bound the field to a data element, and presumably Modus knows how to back-convert it
-to a regular value. Because Modus wraps the entire div, we have the nice property that:
-
-| person(p).val() == p          // Assuming that we call it val()
-
-Behavior specialization.
-Ideally we want to compose Modus entities, and perhaps overlay certain things. Modus exists for the purpose of automating jQuery tasks, so this is fairly natural thing to want to do. For
-instance:
-
-| profile(p) = html[div[person(p.person), whatever_else] /modus('profile')]
-
-Presumably Modus detects the nesting and does something useful. So in this case we have hierarchical composition of structural behaviors. But more subtle things happen when we want to assign
-more complex behaviors. For example, suppose we want some kind of jQuery UI-style interaction on an element:
-
-| profile(p) = html[div[...] /modus('profile') /draggable() /resizable() /has_title_bar()]
-
-Ideally 'profile' inherits from some behavior that does all of this for us:
-
-| modus('window_like').is('draggable resizable titled'),
-  modus('profile').is('window_like'),
-  profile(p) = html[div[...] /modus('profile')]                 // Inherits automatically, or some such
-
-Naturally a whole micro-world of metaprogramming would spring up here. Functors are clearly useful for situations like this.
-__
-meta::note('canvas', <<'__');
-Using Canvas with Modus.
-I think it would be very cool to provide a Canvas backend for Modus. The components it provides should be sufficiently high-level that this is an option that can be transparently used. In
-particular, it would be great to have scaling, rapid animation, cloning, and maybe even simulated 3D rotation. I think it's worth a shot.
-__
-meta::note('frp', <<'__');
-Functional reactive programming.
-I'm not sure if I need FRP in a formal way, but ideally Modus will build a progressive bijection of UI state with time. A question is how much information it takes to progressively define this
-function, and how to store it as a cumulative total. (This is actually a very difficult question.)
-__
-meta::note('mechanism', <<'__');
-Mechanism of integration.
-Modus should be an extension method of jQuery. The semantics are to construct a Modus wrapper for a jQuery object. This gives the user the advantage that one of many behaviors can be assigned,
-and it creates an obvious point to hook into the global Modus time function. (So free undo's, essentially.)
-__
-meta::note('model', <<'__');
-What is a component.
-A component's state is the Cartesian product of its inherited values and its time-dependent state. For example, a tab component has a width and height inherited from its container but its
-current tab is determined by the user's input. This user-input state is integrated into the global state monad that allows the user to navigate through time.
-__
-meta::note('mss', <<'__');
-Modus stylesheets.
-A Modus stylesheet is far more than just style. It governs the entire implementation of the core set of components.
-__
-meta::note('purpose', <<'__');
-Purpose of Modus.
-Modus exists to take the thoughtwork out of writing rich web UIs. Unlike a lot of libraries that focus on providing an object-oriented widget library, Modus takes a functional approach that
-emphasizes generation over configuration. In particular, Modus solves (or tries to solve) these problems:
-
-| 1. Writing CSS. I don't mind if all of my apps look the same, so I'd rather factor CSS out of the picture. Modus provides a way to style elements independently of CSS and with abstraction.
-  2. Managing delays, including animation. The framework should connect events together in a fluid way, managing the state of components while they are in transition.
-  3. Providing component combinators. These manage the logic of wrapping stuff in containers and generating new components.
-  4. Providing a page-state monad and synchronizing it with the URL hash. This is the hard part, as it involves bidirectional event propagation.
-__
-meta::note('time', <<'__');
-Representing time.
-Time is a first-class entity and it's global. Because of this, it's possible to do stuff like going back in time in addition to forwards (provided that you have the state of the UI in the
-past). This makes undoing stuff very simple; you just go back in time. You can take a state in the past and set it to the present if you'd like.
-
-There's an obvious question here: how is time integrated into the picture? If it's a DOM-level thing, then we need an isomorphism to get DOM state into regular data structures; if it's a
-higher-level thing then we might lose precision with animations and such, breaking the experience for the user.
-
-Note: See the 'model' note for an updated discussion. This problem is solved by treating time as one component of a state.
-
-All events are edge-triggered. This preserves the usual event model, but also allows querying later on. For any event to be considered part of time, it must support some kind of group
-semantics. (i.e. associative, inverses, and identity.) Actually, identity and associativity are both optional, so we have a quasigroup.
-__
 meta::parent('/home/spencertipping/bin/configuration', <<'__');
 meta::type::configuration                d67e10a128e6b1d958c5b9d3bbe25aa4
 parent::/home/spencertipping/bin/object  9088a9cf9c95b7c1184f1c3b528824ba
@@ -2025,47 +1944,72 @@ my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __
 meta::sdoc('js::modus.core', <<'__');
-Modus core structure | Spencer Tipping
+Modus core monad | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
 Introduction.
-This file defines the Modus global and jQuery method. Modus inherits from Caterwaul sequences, perhaps counterintuitively -- this is for a good reason. Modus is similar to jQuery in that it
-gives you a selection interface; unlike jQuery, however, it is largely nonuniform in the methods that it supports. It also operates at a very different level of abstraction.
+Modus is a monad that wraps jQuery objects and provides its own methods for type-specified DOM manipulation. It does this by letting you define method-sets that operate on given sets of
+elements; these are installed on modus wrappers. Modus wrappers are to jQuery as jQuery is to the DOM; they cross-cut jQuery's selector "hierarchy" and provide a more coherent and
+domain-specific set of functionality. Modus diverges from jQuery by specializing, rather than generalizing, the DOM.
 
-Because Modus binds a global 'modus', it provides a deglobalize() method to restore the original value of this global. deglobalize() returns the Modus global.
+  Example: parsed e-mail input box.
+  Suppose you want to create a text box that accepts e-mail addresses and maps those addresses into their parsed username, domain name, and TLD. In regular jQuery with Caterwaul you might
+  write this:
 
-caterwaul.clone('std seq continuation')(function () {
-  modus = modus_global,
+  | email_box(x) = jquery [input.email /val(x)]
+                   -effect [it.data('parsed', given.nothing in parse_email($(this).val()))];
 
-  modus_global.deglobalize() = modus_global /se[modus = modus_original],
+  Then the usage works this way:
 
-Behavioral definitions.
-This is the mechanism responsible for defining behaviors and inheritance. At this point everything is abstract; the behavior function is invoked when a DOM tree is assigned that behavior. So,
-for example:
+  | var parsed = something.find('.email').data('parsed')();
 
-| html[div /modus('person')]    // Calls this: modus.behaviors.person(html[div])
+  The 'data' invocation is required to bind the function to the actual <input> node rather than to the jQuery selector that contains it (which is highly transient due to jQuery's design).
+  Modus lets you write this instead:
 
-Using the modus() jQuery method returns a Modus wrapper, which importantly isn't a jQuery object. This means that the modus() call should be last.
+  | email_box_behavior = modus() -effect [it.parsed() = parse_email(this.val())];
+    email_box(x) = modus(jquery in input.email /val(x), email_box_behavior);
 
-  modus_global.behaviors         = {},
-  modus_global.behavior(name, f) = modus_global /se[_.behaviors[name] = f],
+  Modus provides a much more straightforward usage pattern:
 
-JQuery integration.
-I mentioned in the introduction that Modus inherits from a Caterwaul sequence. The reason for this is twofold. First, Modus should support the usual map/fold/etc. operations on its component
-nodes (in this case generally one, but ideally Modus distributes over collections in some meaningful way). Second, more importantly, Modus objects need to be recognizable to the
-Montenegro-extended jQuery append(), before(), after(), and prepend(). The simplest way to make those methods recognize Modus objects is to make Modus objects sequences of the elements that
-they contain.
+  | var parsed = something.find(email_box_behavior).parsed();
+    var parsed = something.find('.email').parsed();             // Equivalent, depending on component layout
 
-Note that for all practical purposes each Modus wrapper will have just one element. There isn't a particularly good reason to have more than one, though in the future Modus may have some kind
-of distributive property that makes it useful to pluralize.
+  Example: composite component.
+  This is the real case where jQuery isn't sufficient. Suppose you've got a heterogeneous composition of components and want to automatically propagate state both downwards and upwards. This
+  requires some kind of abstraction, and modus gives you a way to express that:
 
-  modus_global.prototype = new caterwaul.seq.finite(),
-  modus_global.prototype.become() = 
+  | person_behavior = modus().selector({name: 'td.name input', email: 'td.email input'})
+                              attr('val', given.nothing in {name: this.name().val(), email: this.email().val()},
+                                          given.x       in this -effect- it.name().val(x.name)
+                                                                -effect- it.email().val(x.email));
+    person(p) = modus(jquery in table.person(tr(td.name(input /val(p.name)), td.email[email_box(p.email)])), person_behavior);
 
-  jQuery.fn.modus() = modus_global.from_jquery.apply(this, arguments),
+  Widget combination is a really common thing to want to do, so modus provides higher-order behaviors to help. These higher-order behaviors build up the val() function and selectors for you so
+  that you don't have to:
 
-  where*[modus_original = modus,
-         modus_global() = modus_global.init.apply(this, arguments)]})();
+  | person_behavior = modus.composite({name: 'td.name input', email: 'td.email input'});
+    person(p)       = modus(jquery in table.person(tr(td.name(input /val(p.name)), td.email[email_box(p.email)])), person_behavior);
+
+  Here's what usage looks like:
+
+  | my_person = person({name: 'bob', email: 'woot@woot.com'});
+    my_person.val().name        // -> 'bob'
+    my_person.val().email       // -> 'woot@woot.com'
+
+  Example: a list of stuff.
+  Let's suppose we want a list of people. We can do this by using a modus.list, which takes one mandatory selector to the list component and an optional selector that drills down from each
+  item to the actual value contained within that item. Modus automatically calls .eq(0) on the result of each one, so your selectors can be ambiguous. For example:
+
+  | list_of_people_behavior = modus.list('.list', '.person');
+    list_of_people(ps) = modus(jquery [div.list] -effect- ps *![it.append(x)] /seq, list_of_people_behavior);
+
+  Usage is predictably straightforward:
+
+  | my_people = list_of_people([{name: 'bob', email: 'woot@woot.com'}, ...]);
+    my_people.val()     // -> [{name: 'bob', email: 'woot@woot.com'}, ...]
+
+  The advantage of generalizing out the selectors is that you can have some bookkeeping components that let the user add and remove stuff. Each element can be placed into a wrapper that
+  provides a delete button, for example, and in addition to just the list elements you can have components that create new items.
 __
 meta::template('comment', '\'\';     # A mechanism for line or block comments.');
 meta::template('eval', <<'__');

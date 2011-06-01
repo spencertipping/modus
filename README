@@ -1,12 +1,1 @@
-Modus user interface framework | Spencer Tipping
-Licensed under the terms of the MIT source code license
-
-Modus is an abstraction layer on top of Caterwaul designed to make it easy to
-write simple interfaces and possible to write complex ones. It manages a lot of
-the tedium of user interface development while giving you lots of freedom to
-customize.
-
-Note that this framework isn't a widget library. It doesn't exist to solve that
-problem. Rather, it's a way to rapidly compose existing components into
-high-level structures. (Not that you couldn't write widgets using Modus; it's
-just that the project doesn't come with many.)
+Modus UI monad: a way to specialize jQuery objects.
