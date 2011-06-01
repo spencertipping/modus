@@ -1956,8 +1956,8 @@ domain-specific set of functionality. Modus diverges from jQuery by specializing
   Suppose you want to create a text box that accepts e-mail addresses and maps those addresses into their parsed username, domain name, and TLD. In regular jQuery with Caterwaul you might
   write this:
 
-  | email_box(x) = jquery [input.email /val(x)]
-                   -effect [it.data('parsed', given.nothing in parse_email($(this).val()))];
+  | email_box(x) = jquery [input.email /instavalidate(/\w+@\w+\.\w+/) /val(x || '')]
+                   -effect [it.data('parsed', given.nothing in parse_email(it.val()))];
 
   Then the usage works this way:
 
@@ -1966,8 +1966,8 @@ domain-specific set of functionality. Modus diverges from jQuery by specializing
   The 'data' invocation is required to bind the function to the actual <input> node rather than to the jQuery selector that contains it (which is highly transient due to jQuery's design).
   Modus lets you write this instead:
 
-  | email_box_behavior = modus() -effect [it.parsed() = parse_email(this.val())];
-    email_box(x) = modus(jquery in input.email /val(x), email_box_behavior);
+  | email_box_behavior = modus().method('parsed', given.nothing in parse_email(this.val()));
+    email_box(x) = email_box_behavior(jquery in input.email /instavalidate(/\w+@\w+\.\w+/) /val(x || ''));
 
   Modus provides a much more straightforward usage pattern:
 
@@ -1982,13 +1982,13 @@ domain-specific set of functionality. Modus diverges from jQuery by specializing
                               attr('val', given.nothing in {name: this.name().val(), email: this.email().val()},
                                           given.x       in this -effect- it.name().val(x.name)
                                                                 -effect- it.email().val(x.email));
-    person(p) = modus(jquery in table.person(tr(td.name(input /val(p.name)), td.email[email_box(p.email)])), person_behavior);
+    person(p) = person_behavior(jquery in table.person(tr(td.name(input /val(p.name)), td.email[email_box(p.email)])));
 
   Widget combination is a really common thing to want to do, so modus provides higher-order behaviors to help. These higher-order behaviors build up the val() function and selectors for you so
   that you don't have to:
 
   | person_behavior = modus.composite({name: 'td.name input', email: 'td.email input'});
-    person(p)       = modus(jquery in table.person(tr(td.name(input /val(p.name)), td.email[email_box(p.email)])), person_behavior);
+    person(p)       = person_behavior(jquery in table.person(tr(td.name(input), td.email[email_box()]))).val(p);
 
   Here's what usage looks like:
 
@@ -2001,7 +2001,7 @@ domain-specific set of functionality. Modus diverges from jQuery by specializing
   item to the actual value contained within that item. Modus automatically calls .eq(0) on the result of each one, so your selectors can be ambiguous. For example:
 
   | list_of_people_behavior = modus.list('.list', '.person');
-    list_of_people(ps) = modus(jquery [div.list] -effect- ps *![it.append(x)] /seq, list_of_people_behavior);
+    list_of_people(ps) = list_of_people_behavior(jquery [div.list]).val(ps);
 
   Usage is predictably straightforward:
 
@@ -2010,6 +2010,16 @@ domain-specific set of functionality. Modus diverges from jQuery by specializing
 
   The advantage of generalizing out the selectors is that you can have some bookkeeping components that let the user add and remove stuff. Each element can be placed into a wrapper that
   provides a delete button, for example, and in addition to just the list elements you can have components that create new items.
+
+Linkages.
+Modus objects refer to the jQuery objects they wrap, and the jQuery objects refer back to the modus objects. For example:
+
+| var m = list_of_people([...]);
+  m[0]                  // -> jquery of table
+  m.length              // -> 1
+  m[0].data('modus')    // -> ps
+
+It's for this reason that you can use arbitrary jQuery selectors without modus having a hard reference ahead of time.
 __
 meta::template('comment', '\'\';     # A mechanism for line or block comments.');
 meta::template('eval', <<'__');
