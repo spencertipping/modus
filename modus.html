@@ -1966,7 +1966,7 @@ domain-specific set of functionality. Modus diverges from jQuery by specializing
   The 'data' invocation is required to bind the function to the actual <input> node rather than to the jQuery selector that contains it (which is highly transient due to jQuery's design).
   Modus lets you write this instead:
 
-  | email_box_behavior = modus().method('parsed', given.nothing in parse_email(this.val()));
+  | email_box_behavior = modus().method('parsed', given.nothing in parse_email(this.jquery.val()));
     email_box(x) = email_box_behavior(jquery in input.email /instavalidate(/\w+@\w+\.\w+/) /val(x || ''));
 
   Modus provides a much more straightforward usage pattern:
@@ -1978,7 +1978,7 @@ domain-specific set of functionality. Modus diverges from jQuery by specializing
   This is the real case where jQuery isn't sufficient. Suppose you've got a heterogeneous composition of components and want to automatically propagate state both downwards and upwards. This
   requires some kind of abstraction, and modus gives you a way to express that:
 
-  | person_behavior = modus().selector({name: 'td.name input', email: 'td.email input'})
+  | person_behavior = modus().selector({name: 'td.name input', email: 'td.email input'}).
                               attr('val', given.nothing in {name: this.name().val(), email: this.email().val()},
                                           given.x       in this -effect- it.name().val(x.name)
                                                                 -effect- it.email().val(x.email));
@@ -2001,7 +2001,7 @@ domain-specific set of functionality. Modus diverges from jQuery by specializing
   item to the actual value contained within that item. Modus automatically calls .eq(0) on the result of each one, so your selectors can be ambiguous. For example:
 
   | list_of_people_behavior = modus.list('.list', '.person');
-    list_of_people(ps) = list_of_people_behavior(jquery [div.list]).val(ps);
+    list_of_people(ps) = list_of_people_behavior(jquery in div.list).val(ps);
 
   Usage is predictably straightforward:
 
@@ -2011,15 +2011,81 @@ domain-specific set of functionality. Modus diverges from jQuery by specializing
   The advantage of generalizing out the selectors is that you can have some bookkeeping components that let the user add and remove stuff. Each element can be placed into a wrapper that
   provides a delete button, for example, and in addition to just the list elements you can have components that create new items.
 
-Linkages.
-Modus objects refer to the jQuery objects they wrap, and the jQuery objects refer back to the modus objects. For example:
+Internal design concerns.
+This section is mainly to help me iron out how modus interfaces with the world.
 
-| var m = list_of_people([...]);
-  m[0]                  // -> jquery of table
-  m.length              // -> 1
-  m[0].data('modus')    // -> ps
+  Linkages.
+  Modus objects refer to the jQuery objects they wrap, and the jQuery objects refer back to the modus objects. Modus objects also act as proxies for jQuery collections. For example:
 
-It's for this reason that you can use arbitrary jQuery selectors without modus having a hard reference ahead of time.
+  | var m = list_of_people([...]);
+    m[0]                        // -> <table> DOM element (not jQuery-wrapped)
+    m.length                    // -> 1
+    m.jquery                    // -> jQuery containing a <table> element
+    m.jquery.data('modus')      // -> something equivalent to m
+    m.each(...)                 // equivalent to m.jquery.each(...) to make proxying work
+
+  It's for this reason that you can use arbitrary jQuery selectors without modus having a hard reference ahead of time.
+
+  Synchronization.
+  A big aspect of modus is being able to synchronize a widget on-screen with server-side data. This can be done in one of two ways. If the component is self-contained and a diff-ish algorithm
+  can determine what has changed, then we can update single components using some kind of replacement. (This assumes that the component's logical representation captures everything about its
+  state.) Otherwise we can show the user any changes made on the server without trying to merge them. This has the advantage that the user won't have to worry about the merge.
+
+Implementation.
+Modus is implemented using caterwaul and assumes that the jQuery reference is available.
+
+  caterwaul.js_all()(function (original_modus, $) {
+
+  Global instance.
+  This is a function that returns functions that create .data() references to themselves. The modus() function represents a generator for behaviors, and each behavior, when applied to a jQuery
+  object, will set that object's .data('modus') to refer to itself. This allows later modus objects to refer to whatever behavior you've established for the element.
+
+  If you invoke the modus() global on a jQuery object, that jQuery object's modus wrapper will be returned. If this doesn't exist, then the jQuery object will be returned instead.
+
+    modus(x) = x && x instanceof jQuery ? x.data('modus') || x : calls_its_init_method() -se- add_initial_methods_to(it) -se- make_a_subclass_of_jquery(it),
+
+      where [calls_its_init_method()      = bind [result = given.nothing in result.init.apply(result, arguments)] in result,
+             make_a_subclass_of_jquery(f) = f -se [it.prototype = $(null), it.prototype.constructor = it],
+             add_initial_methods_to(f)    = caterwaul.merge(f, modus.prototype)],
+
+    modus.deglobalize() = modus -se [modus = original_modus],
+
+    modus.prototype = {} -se [it.constructor     = modus,
+
+                              it.init(jquery)    = jquery.data('modus', this) *![this[xi] = x] /seq
+                                                   -then [this.length = jquery.length, this.jquery = jquery, caterwaul.merge(this, this.prototype)],
+
+                              it.method(name, f) = this -se [this.prototype[name] = f],
+                              it.each(f)         = this *![f.call(x, xi)] /seq],
+
+  Metaprogramming methods.
+  These are methods on behaviors that let you add methods in a systematic way. You can add additional meta-methods by extending modus.prototype.
+
+    modus.prototype -se [
+
+    Attr method.
+    This adds a getter/setter attribute in jQuery style. If you pass arguments to the function then it acts as a setter returning the receiver, and if you pass no arguments then it acts as a
+    retriever. For convenience these cases are pre-separated; you specify the getter and setter separately.
+
+      it.attr(name, getter, setter) = this.method(name, given.x [arguments.length ? setter.apply(this, arguments) -re- this : getter.call(this)]),
+
+    Selector method.
+    This lets you create methods that dig through the DOM hierarchy to reference other modus nodes. You do this by specifying a hash that maps method names to selector strings. The object you
+    get back from one of these methods will be a modus wrapper around the jQuery selector that matched. Ambiguous selectors are reduced to the first matching element.
+
+      it.selector(mappings) = mappings /pairs *![this.method(name, selector_method_for(selector)) -where [name = x[0], selector = x[1]]] /seq -re- this
+                              -where [selector_method_for(selector)() = modus(this.jquery.filter(selector).add(this.jquery.find(selector)).eq(0))]],
+
+  Component combinators.
+  These combine components somehow. The simplest is 'composite', which just generates a val() function that knows how to destructure single-layer hashes and convert .val() calls accordingly.
+  It also gives you selector-accessors for the mappings.
+
+    modus.composite(mappings) = modus().selector(mappings).attr('val', given.nothing [mappings /keys *[[x, this[x]().val()]]        |object |seq],
+                                                                       given.hash    [hash     /keys *[[x, this[x]().val(hash[x])]] |object |seq -re- this]),
+
+  The other combinator you get is 'list', which does exactly what you'd expect. It takes two arguments; one is to the container of items, and 
+
+    return modus})(typeof modus === 'undefined' ? undefined : modus, jQuery);
 __
 meta::template('comment', '\'\';     # A mechanism for line or block comments.');
 meta::template('eval', <<'__');
