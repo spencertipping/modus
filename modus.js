@@ -29,7 +29,7 @@ caterwaul.js_all()(function ($) {
 // Nonterminal combinators.
 // Modus provides combinators to handle the most common cases of component nesting.
 
-  $.modus = {} -se [
+  $.modus = {util: {}} -se [
 
 //   Original value access.
 //   Terminal combinators need this to avoid causing an infinite loop.
