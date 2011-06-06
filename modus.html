@@ -1945,81 +1945,68 @@ my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __
 meta::sdoc('js::modus', <<'__');
-Modus core combinators | Spencer Tipping
+Modus UI combinators | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
+caterwaul.js_all()(function ($) {
+
 Introduction.
-Modus is a set of combinators that wrap jQuery objects and provides its own methods for type-specified DOM manipulation. It does this by letting you define method-sets that operate on given
-sets of elements; these are installed on modus wrappers. Modus wrappers are to jQuery as jQuery is to the DOM; they cross-cut jQuery's selector "hierarchy" and provide a more coherent and
-domain-specific set of functionality. Modus diverges from jQuery by specializing, rather than generalizing, the DOM.
+Modus gives you combinators for the jQuery val() function. It does this by overloading jQuery's implementation of val() in certain cases. You specify how this is overloaded by configuring an
+object using the modus() method. For example, here's how to create an <input> box whose val() method returns a boolean depending on whether the user entered 'yes' or 'no':
 
-Implementation.
-Modus is implemented using caterwaul and assumes that the jQuery reference is available.
+| yes_no_box() = jquery [input /modus(parse_yes_or_no)]
+                 -where [parse_yes_or_no(e) = x.modus('val') === 'yes'];
 
-  caterwaul.js_all()(function (original_modus, $) {
+If we also wanted a setter for val(), we could implement that too. Here's how to implement a setter that sets the text to 'yes' or 'no' from a boolean:
 
-  Global instance.
-  This is a function that returns functions that create .data() references to themselves. The modus() function represents a generator for behaviors, and each behavior, when applied to a jQuery
-  object, will set that object's .data('modus') to refer to itself. This allows later modus objects to refer to whatever behavior you've established for the element.
+| jquery [input /modus(parse_yes_or_no, set_yes_or_no)]
+  -where [set_yes_or_no(b)   = this.modus('val', b ? 'yes' : 'no'),
+          parse_yes_or_no(x) = ...];
 
-  If you invoke the modus() global on a jQuery object, that jQuery object's modus wrapper will be returned. If this doesn't exist, then the jQuery object will be returned instead.
+This is a terminal combinator, since presumably we're working directly with the val() function implemented on <input> elements. (This is why we had to indirect the val() calls.) The picture
+gets more interesting with nonterminals.
 
-    modus(x) = x && x instanceof jQuery ? x.data('modus') || x : calls_its_init_method() -se- add_initial_methods_to(it),
-    where [calls_its_init_method()   = f -where [f() = this instanceof f ? undefined : f.init.apply(f, arguments)],
-           add_initial_methods_to(f) = caterwaul.merge(f, modus.prototype)],
+  var original_jquery_val = $.fn.val;
 
-    modus.deglobalize() = modus -se [modus = original_modus],
+  $.fn.val(args = arguments) = this.data('modus') -re [it ? args.length ? it.setter.apply(this, args) : it.getter.call(this) : original_jquery_val.apply(this, args)],
 
-  The init() method on instances of the global modus object returns a modus object of that behavior. It in turn contains a reference to the jQuery object that contains the components it
-  represents. Not a lot happens when doing this. All we have to do is link the jQuery object to the new modus constructor and link the '$' property to the jQuery collection being wrapped.
+  $.fn.modus(getter, setter) = getter.constructor === String ? use_named_combinator(this, arguments) : this.data('modus', {getter: getter, setter: setter}),
+  where [use_named_combinator(receiver, args) = $.modus[args[0]].apply(receiver, Array.prototype.slice.call(args, 1))],
 
-  Note that invoking a modus behavior on something doesn't return the modus wrapper! It just sets data on the jQuery collection. You use the modus() function on the jQuery collection to get
-  the modus wrapper for that element. You can pass a second parameter to the behavior to set the value inline. (This is often more convenient than trying to wedge a value-set call into a
-  constructor function.)
+Nonterminal combinators.
+Modus provides combinators to handle the most common cases of component nesting.
 
-    modus.prototype = {} -se [it.constructor     = modus,
-                              it.init(jquery, v) = new this() -then [it.$ = jquery.data('modus', it)] -then [it.val(v) -unless [v === undefined]] -returning- jquery,
-                              it.method(name, f) = this -se [this.prototype[name] = f],
-                              it.each(f)         = this.$.each(f)],
+  $.modus = {} -se [
 
-  Metaprogramming methods.
-  These are methods on behaviors that let you add methods in a systematic way. You can add additional meta-methods by extending modus.prototype.
+  Original value access.
+  Terminal combinators need this to avoid causing an infinite loop.
 
-    modus.prototype -se [
+    it.val() = original_jquery_val.apply(this, arguments),
 
-    Attr method.
-    This adds a getter/setter attribute in jQuery style. If you pass arguments to the function then it acts as a setter returning the receiver, and if you pass no arguments then it acts as a
-    retriever. For convenience these cases are pre-separated; you specify the getter and setter separately.
+  List combinator.
+  Let's suppose we want to present the user with a bunch of yes/no boxes and manage their values as an array. One way to do this would be to write the nesting out longhand, but it's easier to
+  use the list combinator:
 
-      it.attr(name, getter, setter) = this.method(name, given.x [arguments.length ? setter.apply(this, arguments) -re- this : getter.call(this)]),
+  | list_of_boxes() = jquery [div.list /modus('list', yes_no_box)];
+    my_list = list_of_boxes().val([true, false, false]);        // populates the list with three text boxes and sets their values
+    my_list.val()                                               // -> [true, false, false]
 
-    Selector method.
-    This lets you create methods that dig through the DOM hierarchy to reference other modus nodes. You do this by specifying a hash that maps method names to selector strings. The object you
-    get back from one of these methods will be a modus wrapper around the jQuery selector that matched. Ambiguous selectors are reduced to the first matching element.
+    it.list(new_element) = this.modus(given.nothing in this.children() *[$(x).val()] /seq,
+                                      given.xs      in this.empty() -effect- xs *![it.append(new_element().val(x))] /seq),
 
-      it.selector(mappings) = mappings /pairs *![this.method(name, selector_method_for(selector)) -where [name = x[0], selector = x[1]]] /seq -re- this
-                              -where [selector_method_for(selector)() = modus(this.$.filter(selector).add(this.$.find(selector)).eq(0))]],
+  Composite combinator.
+  This lets you build up a component hierarchy and represent an object of state. For example, suppose we want to represent a person's name and e-mail address. Here's how that might be done:
 
-  Component combinators.
-  These combine components somehow. The simplest is 'composite', which just generates a val() function that knows how to destructure single-layer hashes and convert .val() calls accordingly.
-  It also gives you selector-accessors for the mappings.
+  | name_and_email() = jquery [div(input.name, input.email) /modus('composite', {name: '.name', email: '.email'})];
+    my_person = name_and_email().val({name: 'Spencer', email: 'spencer@spencertipping.com'})    // populates boxes by path
+    my_person.val()                                                                             // -> {name: 'Spencer', email: 'spencer@spencertipping.com'}
 
-    modus.composite(mappings) = modus().selector(mappings).attr('val', given.nothing [mappings /keys *[[x, this[x]().val()]]        |object |seq],
-                                                                       given.hash    [hash     /keys *[[x, this[x]().val(hash[x])]] |object |seq, this]),
+  You can use ambiguous paths; if you do this, the first matching element will be chosen.
 
-  The other combinator you get is 'list', which does exactly what you'd expect. Its parameter is a constructor function for each item; this will be called when you set the value of the list
-  and should probably be called if you manually add elements. Note that the value constructor should return a modus object unless the logical value of each child is sufficiently described by
-  jQuery's built-in val() function.
+    it.composite(paths) = this.modus(given.nothing [paths /keys *[[x, find(this, paths[x]).eq(0).val()]] |object |seq],
+                                     given.xs      [paths /keys *![find(this, paths[x]).eq(0).val(xs[x])] /seq -re- this]),
 
-    modus.list(create_item) = modus().attr('val', given.nothing in this.$.children() *[modus($(x)).val()] /seq,
-                                                  given.xs      in this.$.empty() -effect- xs *![it.append(create_item(x))] /seq -re- this),
-
-  Finally, there's wrapping. This just forwards the .val() method to a child component.
-
-    modus.wrapper(path) = modus().attr('val', given.nothing in modus(this.$.find(path)).val(),
-                                              given.x       in modus(this.$.find(path)).val(x));
-
-    return modus})(typeof modus === 'undefined' ? undefined : modus, jQuery);
+    where [find(container, path) = container.filter(path).add(container.find(path))]]})(jQuery);
 __
 meta::template('comment', '\'\';     # A mechanism for line or block comments.');
 meta::template('eval', <<'__');
