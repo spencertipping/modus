@@ -2098,7 +2098,12 @@ Modus is implemented using caterwaul and assumes that the jQuery reference is av
   jQuery's built-in val() function.
 
     modus.list(create_item) = modus().attr('val', given.nothing in this.children() *[modus($(x)).val()] /seq,
-                                                  given.xs      in this.empty() -effect- xs *![it.append(create_item(x))] /seq -re- this);
+                                                  given.xs      in this.empty() -effect- xs *![it.append(create_item(x))] /seq -re- this),
+
+  Finally, there's wrapping. This just forwards the .val() method to a child component.
+
+    modus.wrapper(path) = modus().attr('val', given.nothing in this.find(path).val(),
+                                              given.x       in this.find(path).val(x));
 
     return modus})(typeof modus === 'undefined' ? undefined : modus, jQuery);
 __
