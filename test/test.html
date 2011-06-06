@@ -11,13 +11,15 @@
   <script>
     $(caterwaul.js_ui(caterwaul.js_all())(function () {
       $('body').append(list_of_people([{name: 'Spencer', email: 'spencer@spencertipping.com'}, {name: 'Joyce', email: 'joyce@joycetipping.com'}]),
-                       jquery in button('New person') /click(given.nothing in $(this).prev().append(person({name: '', email: ''})))),
+                       jquery in button('New person')),
 
       where [person_behavior = modus.composite({name: 'input.name', email: 'input.email'}),
-             person(p)       = person_behavior(jquery in tr(td(input.name), td(input.email), td(a('nuke') /click(given.nothing in $(this).parent().remove())))).val(p),
+             person(p)       = person_behavior(jquery in tr(td(input.name), td(input.email), td(a('nuke') /click(given.nothing in $(this).parent().remove()))), p),
+
+             new_person()    = $('.list-of-people').append(person({name: '', email: ''})),
 
              list_of_people_behavior = modus.list(person),
-             list_of_people(ps)      = list_of_people_behavior(jquery in table).val(ps)]}));
+             list_of_people(ps)      = list_of_people_behavior(jquery in table.list_of_people, ps)]}));
   </script>
   </head>
   <body></body>
