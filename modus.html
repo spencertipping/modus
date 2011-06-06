@@ -224,7 +224,7 @@ meta::define_form 'template', sub {
 };
 __
 meta::meta('type::watch', 'meta::functor::editable \'watch\', prefix => \'watch::\', inherit => 1, extension => \'.pl\', default => \'cat\';');
-meta::alias('e', 'edit sdoc::js::modus.core');
+meta::alias('e', 'edit sdoc::js::modus');
 meta::alias('ec', 'edit sdoc::js::modus.core');
 meta::alias('ehist', 'edit sdoc::js::modus.history');
 meta::alias('ems', 'edit sdoc::js::modus.mss');
@@ -1267,6 +1267,7 @@ terminal::error("Verification failed; expected $state but got $observed from $ot
 hook('after-verify', $result, observed => $observed, expected => $state);
 $result;
 __
+meta::hook('after-render::base-files', 'file::write("$_.js", retrieve("js::$_")) for grep s/^sdoc::js:://, keys %data;');
 meta::internal_function('around_hook', <<'__');
 # around_hook('hookname', @args, sub {
 #   stuff;
@@ -1943,13 +1944,13 @@ meta::retriever('sdocp', <<'__');
 my $attribute = attribute($_[0]);
 exists $data{"sdoc::$attribute"} ? sdocp("sdoc::$attribute") : undef;
 __
-meta::sdoc('js::modus.core', <<'__');
-Modus core monad | Spencer Tipping
+meta::sdoc('js::modus', <<'__');
+Modus core combinators | Spencer Tipping
 Licensed under the terms of the MIT source code license
 
 Introduction.
-Modus is a monad that wraps jQuery objects and provides its own methods for type-specified DOM manipulation. It does this by letting you define method-sets that operate on given sets of
-elements; these are installed on modus wrappers. Modus wrappers are to jQuery as jQuery is to the DOM; they cross-cut jQuery's selector "hierarchy" and provide a more coherent and
+Modus is a set of combinators that wrap jQuery objects and provides its own methods for type-specified DOM manipulation. It does this by letting you define method-sets that operate on given
+sets of elements; these are installed on modus wrappers. Modus wrappers are to jQuery as jQuery is to the DOM; they cross-cut jQuery's selector "hierarchy" and provide a more coherent and
 domain-specific set of functionality. Modus diverges from jQuery by specializing, rather than generalizing, the DOM.
 
   Example: parsed e-mail input box.
@@ -1996,20 +1997,29 @@ domain-specific set of functionality. Modus diverges from jQuery by specializing
     my_person.val().name        // -> 'bob'
     my_person.val().email       // -> 'woot@woot.com'
 
+  Example: a wrapper for something.
+  Let's say we want a component that takes some other component but adds a delete link to it. You can do this by constructing a wrapper behavior. Here's how that looks:
+
+  | delete_link_wrapper   = modus.wrapper('.item');     // Forwards .val() calls to the .item descendant
+    delete_link_around(x) = delete_link_wrapper(jquery in div.deletable(a.remove('[nuke this thing]') /click(given.nothing in $(this).parent().remove()), div.item[x]));
+
+  Now you can use this wrapper transparently with other components:
+
+  | wrapped_person = delete_link_around(my_person);
+    wrapped_person.val()        // -> my_person.val()
+    wrapped_person.val(x)       // -> my_person.val(x)
+
   Example: a list of stuff.
-  Let's suppose we want a list of people. We can do this by using a modus.list, which takes one mandatory selector to the list component and an optional selector that drills down from each
-  item to the actual value contained within that item. Modus automatically calls .eq(0) on the result of each one, so your selectors can be ambiguous. For example:
+  It's very common to want to display a list of things to the user. Modus makes this simple by giving you a list constructor that provides an array functor over the .val() function. All it
+  needs is a constructor function for each element:
 
-  | list_of_people_behavior = modus.list('.list', '.person');
-    list_of_people(ps) = list_of_people_behavior(jquery in div.list).val(ps);
+  | list_of_people_behavior = modus.list(person);
+    list_of_people(ps)      = list_of_people_behavior(jquery in div).val(ps);
 
-  Usage is predictably straightforward:
+  At this point you can query the .val() method of a list of people and it will transparently map that into an array:
 
-  | my_people = list_of_people([{name: 'bob', email: 'woot@woot.com'}, ...]);
-    my_people.val()     // -> [{name: 'bob', email: 'woot@woot.com'}, ...]
-
-  The advantage of generalizing out the selectors is that you can have some bookkeeping components that let the user add and remove stuff. Each element can be placed into a wrapper that
-  provides a delete button, for example, and in addition to just the list elements you can have components that create new items.
+  | my_list = list_of_people([{name: 'foo', email: 'bar@bif.com'}, ...]);
+    my_list.val()               // -> [{name: 'foo', email: 'bar@bif.com'}, ...]
 
 Internal design concerns.
 This section is mainly to help me iron out how modus interfaces with the world.
@@ -2083,7 +2093,12 @@ Modus is implemented using caterwaul and assumes that the jQuery reference is av
     modus.composite(mappings) = modus().selector(mappings).attr('val', given.nothing [mappings /keys *[[x, this[x]().val()]]        |object |seq],
                                                                        given.hash    [hash     /keys *[[x, this[x]().val(hash[x])]] |object |seq -re- this]),
 
-  The other combinator you get is 'list', which does exactly what you'd expect. It takes two arguments; one is to the container of items, and 
+  The other combinator you get is 'list', which does exactly what you'd expect. Its parameter is a constructor function for each item; this will be called when you set the value of the list
+  and should probably be called if you manually add elements. Note that the value constructor should return a modus object unless the logical value of each child is sufficiently described by
+  jQuery's built-in val() function.
+
+    modus.list(create_item) = modus().attr('val', given.nothing in this.children() *[modus($(x)).val()] /seq,
+                                                  given.xs      in this.empty() -effect- xs *![it.append(create_item(x))] /seq -re- this);
 
     return modus})(typeof modus === 'undefined' ? undefined : modus, jQuery);
 __
