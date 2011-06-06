@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+  <head>
+  <title>Modus test page</title>
+  <script src='http://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.js'></script>
+  <script src='http://caterwauljs.org/build/caterwaul.js'></script>
+  <script src='http://caterwauljs.org/build/extensions/std.pre.js'></script>
+  <script src='http://caterwauljs.org/build/extensions/ui.pre.js'></script>
+  <script src='../modus.js'></script>
+
+  <script>
+    $(caterwaul.js_ui(caterwaul.js_all())(function () {
+      $('body').append(list_of_people([{name: 'Spencer', email: 'spencer@spencertipping.com'}, {name: 'Joyce', email: 'joyce@joycetipping.com'}]),
+                       jquery in button('New person') /click(given.nothing in $(this).prev().append(person({name: '', email: ''})))),
+
+      where [person_behavior = modus.composite({name: 'input.name', email: 'input.email'}),
+             person(p)       = person_behavior(jquery in tr(td(input.name), td(input.email), td(a('nuke') /click(given.nothing in $(this).parent().remove())))).val(p),
+
+             list_of_people_behavior = modus.list(person),
+             list_of_people(ps)      = list_of_people_behavior(jquery in table).val(ps)]}));
+  </script>
+  </head>
+  <body></body>
+</html>

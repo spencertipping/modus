@@ -116,7 +116,7 @@
     modus.prototype = {} -se [it.constructor     = modus,
 
                               it.init(jquery)    = jquery.data('modus', this) *![this[xi] = x] /seq
-                                                   -then [this.length = jquery.length, this.jquery = jquery, caterwaul.merge(this, this.prototype)],
+                                                   -then [this.length = jquery.length, this.jquery = jquery, caterwaul.merge(this, $.fn, this.prototype)],
 
                               it.method(name, f) = this -se [this.prototype[name] = f],
                               it.each(f)         = this *![f.call(x, xi)] /seq],
@@ -144,7 +144,7 @@
 //   It also gives you selector-accessors for the mappings.
 
     modus.composite(mappings) = modus().selector(mappings).attr('val', given.nothing [mappings /keys *[[x, this[x]().val()]]        |object |seq],
-                                                                       given.hash    [hash     /keys *[[x, this[x]().val(hash[x])]] |object |seq -re- this]),
+                                                                       given.hash    [hash     /keys *[[x, this[x]().val(hash[x])]] |object |seq, this]),
 
 //   The other combinator you get is 'list', which does exactly what you'd expect. Its parameter is a constructor function for each item; this will be called when you set the value of the list
 //   and should probably be called if you manually add elements. Note that the value constructor should return a modus object unless the logical value of each child is sufficiently described by
