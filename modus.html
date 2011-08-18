@@ -2105,6 +2105,13 @@ Modus provides combinators to handle the most common cases of component nesting.
 
     it.val() = original_jquery_val.apply(this, arguments),
 
+  Delegate combinator.
+  This lets you build a proxy component that has no component associated with it. This works because modus uses duck typing for the jQuery components below; all we need to do is implement a
+  fake first() method to return 'this'.
+
+    it.delegate(getter, setter) = {} -se [it.first() = it, it.val() = arguments.length ? setter.apply(this, arguments) -re- this :
+                                                                                         getter.apply(this, arguments)],
+
   List combinator.
   Let's suppose we want to present the user with a bunch of yes/no boxes and manage their values as an array. One way to do this would be to write the nesting out longhand, but it's easier to
   use the list combinator:
@@ -2125,10 +2132,11 @@ Modus provides combinators to handle the most common cases of component nesting.
 
   You can use ambiguous paths; if you do this, the first matching element will be chosen.
 
-    it.composite(paths) = this.modus(given.nothing in paths /keys *[[x, find(this, paths[x]).eq(0).val()]] /object /seq,
-                                     given.xs      in paths /keys *![find(this, paths[x]).eq(0).val(xs[x])] /seq -re- this),
+    it.composite(paths) = this.modus(given.nothing in paths /keys *[[x, find(this, paths[x]).first().val()]] /object /seq,
+                                     given.xs      in paths /keys *![find(this, paths[x]).first().val(xs[x])] /seq -re- this),
 
-    where [find(container, path) = container.filter(path).add(container.find(path))]]})(jQuery);
+    where [find(container, path) = path.constructor === String   ? container.filter(path).add(container.find(path)) :
+                                   path.constructor === Function ? path(container) : raise [new Error('invalid modus path: #{path}')]]]})(jQuery);
 
 __
 meta::sdoc('js::modus.components', <<'__');
