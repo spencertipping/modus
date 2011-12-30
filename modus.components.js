@@ -1,167 +1,110 @@
-// Modus component library | Spencer Tipping
-// Licensed under the terms of the MIT source code license
-
-// Introduction.
-// Modus as a framework provides a way to overload the val() method on jQuery objects, but it doesn't provide any components. This file includes several commonly-used business-logic components
-// and the bidirectional value conversions for them.
-
-caterwaul.js_all()(function ($) {
-
-// Terminal components.
-// These are ways of reinterpreting text or other direct user input.
-
-//   Formatted input.
-//   A lot of input components can take one of many formats. This low-level wrapper lets you indicate which kind of format should be treated in which way. The idea is that you have a mapping from
-//   format string to handler; the parser tries to match each format to the user's input and calls the corresponding handler. Each handler can reject the input if it isn't correct. To simplify
-//   the design, each format variable matches against exactly one word. The val() function returns undefined if no format matches. For example, here's how to parse an e-mail:
-
-//   | email_box() = jquery in input /modus('formatted', {'_user@_domain._tld': given.match in match}, email -given.email);
-//     email_box().val('foo@bar.com');
-//     email_box().val()           // -> {_user: 'foo', _domain: 'bar', _tld: 'com'}
-
-//   Note the asymmetry of the val() method generated here. It's ok to do this; you just have to watch out for the lack of inversion. Also note that there is no particular order in which the
-//   patterns are matched.
-
-//   Rejection happens when your handler function returns undefined. For example, here's one that accepts only strings of the form 'x minutes ago', where x is a number. This widget implements a
-//   symmetric val() function, which is normally what you would want.
-
-//   | time_ago_box() = jquery in input /modus('formatted', {'_x minutes ago': given.match [/\d+/.test(match._x) ? -Number(match._x) : undefined]}, '#{n} minutes ago' -given.n);
-
-//   Things to be aware of:
-
-//   | 1. All patterns are case-insensitive. Normally this isn't a problem, but it's worth knowing.
-//     2. All patterns attempt to match against the whole contents of the text field, but allow whitespace at the beginning and at the end.
-//     3. Most regexp special characters will be converted to literal characters. There isn't a way to get regexp functionality in patterns at the moment.
-//     4. Any identifier that starts with an underscore is converted into a greedy regexp match for one or more non-whitespace characters.
-
-    $.modus.formatted(patterns, serialize) = this.modus(given.nothing in parse(this.modus('val')),
-                                                        given.value   in this.modus('val', serialize(value)))
-
-                                             -where [escape(p)                           = p.replace(/([.$+*\[\]{}()?])/g, '\\$1'),
-                                                     regexp_for(p)                       = new RegExp('^\\s*' + escape(p).replace(/(_\w+)/g, '\\S+') + '\\s*$', 'i'),
-                                                     variable_list_for(p)                = p.match(/_\w+/g),
-
-                                                     compiled_regexps                    = patterns /pairs *[{pattern: regexp_for(x[0]), variables: variable_list_for(x[0]), f: x[1]}] /seq,
-
-                                                     make_variable_table(matches, names) = names *[[x, matches[xi]]] -object -seq,
-                                                     matching_patterns(s)                = compiled_regexps %[x.pattern.test(s)] /seq,
-                                                     variable_sets_for(s)                = matching_patterns(s) *[{f: x.f, vars: make_variable_table(x.pattern.exec(s), x.variables)}] /seq,
-                                                     parse(s)                            = variable_sets_for(s) *[x.f(x.vars)] %[x !== undefined] /seq -re- it[0]],
-
-//   Personal information components.
-//   These don't actually do much, but they do establish a convention for how to talk about information such as names, e-mail addresses, phone numbers, etc. In the future they may implement
-//   custom parsers and serializers.
-
-    $.modus.name()    = this,
-    $.modus.email()   = this,
-    $.modus.phone()   = this,
-    $.modus.address() = this,
-
-//   Date/time.
-//   There are two components that handle dates and times. One handles absolute time references, and the other handles relative time references or durations. Absolute dates are parsed in any of
-//   these formats:
-
-//   | 1. December 31, 2010
-//     2. 31 December, 2010
-//     3. December 31 2010
-//     4. 31 December 2010
-//     5. 2010 31 December
-//     6. 2010 December 31
-//     7. 2010.1231
-//     8. 12/31/2010
-//     9. 12-31-2010
-//    10. December 31
-//    11. 31 December
-//    12. 12/31
-//    13. 12-31
-
-//   Each of these formats supports the following variations:
-
-//   | 1. The year can be specified as two-digit or four-digit. The two-digit cutoff is 1970.
-//     2. The month, if written as a word, can be any unambiguous prefix. For instance, J is a valid month, as are ja, jan, JAN, etc. Months are case-insensitive.
-
-//   Times are parsed in any of these formats:
-
-//   | 1. midnight, noon, etc. (named times)
-//     2. 12:00 AM
-//     3. 12:00:10 pm
-//     4. 14:00
-//     5. 14:00:10
-//     6. 3pm
-//     7. 3 pm
-
-//   Date/time combinations are:
-
-//   | 1. date at time
-//     2. date time
-//     3. time on date
-//     4. time date
-//     5. date.time
-//     6. date
-
-//   Dates are serialized into one of these forms:
-
-//   | 31 December 2010                    <- if time is midnight
-//     31 December 2010, 12:00 PM          <- if time is not midnight
-
-    $.modus.util -se [it.named_months           = 'january february march april may june july august september october november december'.split(/\s+/),
-                      it.named_times            = {midnight: '12:00 AM', noon: '12:00 PM'},
-
-                      it.time_formats           = ['_name', '_hh:_mm _ap', '_hh:_mm:_ss _ap', '_hh:_mm_ap', '_hh:_mm:_ss_ap', '_HH:_mm', '_HH:_mm:_ss', '_hh_ap', '_hh _ap'],
-                      it.date_formats           = ['_month _dd, _yyyy', '_month _dd _yyyy', '_dd _month, _yyyy', '_dd _month _yyyy',
-                                                   '_yyyy _ddd _month', '_yyyy _month _dd', '_yyyy._mm_dd', '_mm/_dd/_yyyy', '_mm-_dd-_yyyy',
-                                                   '_month _dd', '_dd _month', '_dd/_mm', '_dd-_mm'],
-
-                      it.date_with_time_formats = ['_date at _time', '_date _time', '_time on _date', '_time _date', '_date._time', '_date'],
-
-                      it.named_month(m)         = it.named_months %~![x.indexOf(m.toLowerCase()) === 0 && new Number(xi)] /seq -re [it.length === 1 ? it[0] : undefined],
-                      it.parse_year(y)          = /\d{4}/.test(y) ? Number(y) : /\d{2}/.test(y) ? Number(y) + 1970 : undefined,
-
-                      it.milliseconds(h, m, s)  = (((h * 60) + m) * 60 + s) * 1000,
-
-                      it.date_from_match(match) = bind [year  = match._yyyy  ? it.parse_year(match._yyyy)   : new Date().getFullYear(),
-                                                        month = match._month ? it.named_month(match._month) : Number(match._mm) - 1,
-                                                        day   = match._dd && Number(match._dd)]
-
-                                                       [year !== undefined && month !== undefined && day !== undefined ? new Date(year, month, day) : undefined],
-
-                      it.time_from_match(match) = match._name  ? it.time_from_match(it.named_times[match._name]) :
-                                                  match._mm_ap ? it.time_from_match('#{it._hh}:#{it._mm_ap.substr(0, 2)} #{it._mm_ap.substr(2)}') :
-                                                  match._ss_ap ? it.time_from_match('#{it._hh}:#{it._mm}:#{it._ss_ap.substr(0, 2)} #{it._ss_ap.substr(2)}') :
-                                                  match._hh_ap ? it.time_from_match('#{it._hh_ap.substr(0, 2)} #{it._hh_ap.substr(2)}') :
-
-                                                  match._HH    ? it.milliseconds(Number(match._HH),                                         Number(match._mm) || 0, Number(match._ss) || 0) :
-                                                  match._ap    ? it.milliseconds(Number(match._hh) % 12 + (/^p/i.test(match._ap) ? 12 : 0), Number(match._mm) || 0, Number(match._ss) || 0) :
-                                                                 undefined,
-
-                      it.parse_date_time(match) = bind [date = it.date_from_match(match), time = it.time_from_match(match)]
-                                                       [date !== undefined ? new Date(+date + +time) : undefined],
-
-                      it.serialize_time(d)      = '#{it.getHours() % 12 || 12}:#{it.getMinutes()} #{it.getHours() >= 12 ? "PM" : "AM"}',
-                      it.serialize_date(d)      = '#{d.getDays()} #{it.named_months[d.getMonth()]} #{it.getFullYear()}' +
-                                                    (d.getHours() === 0 && d.getMinutes() === 0 ? '' : ' #{it.serialize_time(d)}'),
-
-                      it.date_patterns()        = unique_strings_in(it.date_with_time_formats *~![all_dates_and_times(x)] /seq)
-
-                                                  -where [pairings                    = seq in it.date_formats - it.time_formats,
-                                                          all_dates_and_times(format) = it.date_with_time_formats *~!~[pairings *p[x.replace(/_date/, p[0]).replace(/_time/, p[1])]] /seq,
-                                                          unique_strings_in(xs)       = xs *[[x, true]] /object /keys /seq],
-
-                      it.time_parsers()         = it.time_formats    *[[x, it.time_from_match]] /object /seq,
-                      it.date_parsers()         = it.date_patterns() *[[x, it.parse_date_time]] /object /seq],
-
-    $.modus.date() = this.formatted($.modus.util.date_parsers(), $.modus.util.serialize_date),
-    $.modus.time() = this.formatted($.modus.util.time_parsers(), $.modus.util.serialize_time),
-
-//   Relative date/time entry is still pending; this will be responsible for parsing things like '5 minutes'.
-
-//   Authentication components.
-//   These accept things like username/password. Right now the username component is just the identity, and password ensures that an input field is in fact a password box. A variant,
-//   hashed_password(), uses the SHA-256 hash imported from kevlar to provide a read-only password. (Trying to set a hashed password results in an error, since presumably the hash is
-//   irreversible.)
-
-    $.modus.username()        = this,
-    $.modus.password()        = this.attr('type', 'password'),
-    $.modus.hashed_password() = this.attr('type', 'password').modus(delay   in kevlar.encode85(kevlar.sha256(this.val())),
-                                                                    given.p in 'cannot set password' -raise)})(jQuery);
-// Generated by SDoc 
+caterwaul.module( 'modus.components' ,function($) {$=jQuery;
+$.modus.formatted=function(patterns,serialize) {;
+return(function( ) {var escape=function( /* unary , node */p) {;
+return p.replace( /([.$+*\[\]{}()?])/g , '\\$1' ) } ,regexp_for=function( /* unary , node */p) {;
+return new RegExp( '^\\s*' +escape(p) .replace( /(_\w+)/g , '\\S+' ) + '\\s*$' , 'i' ) } ,variable_list_for=function( /* unary , node */p) {;
+return p.match( /_\w+/g ) } ,compiled_regexps= (function(xs) {var x,x0,xi,xl,xr;
+for(var xr=new xs.constructor() ,xi=0,xl=xs.length;
+xi<xl;
+ ++xi)x=xs[xi] ,xr.push( ( {pattern:regexp_for(x[0] ) ,variables:variable_list_for(x[0] ) ,f:x[1] } ) ) ;
+return xr} ) .call(this, (function(o) {var ps= [ ] ;
+for(var k in o)Object.prototype.hasOwnProperty.call(o,k) &&ps.push( [k,o[k] ] ) ;
+return ps} ) .call(this, (patterns) ) ) ,make_variable_table=function(matches,names) {;
+return(function(o) {for(var r= { } ,i=0,l=o.length,x;
+i<l;
+ ++i)x=o[i] ,r[x[0] ] =x[1] ;
+return r} ) .call(this, ( (function(xs) {var x,x0,xi,xl,xr;
+for(var xr=new xs.constructor() ,xi=0,xl=xs.length;
+xi<xl;
+ ++xi)x=xs[xi] ,xr.push( ( [x,matches[xi] ] ) ) ;
+return xr} ) .call(this,names) ) ) } ,matching_patterns=function( /* unary , node */s) {;
+return(function(xs) {var x,x0,xi,xl,xr;
+for(var xr=new xs.constructor() ,xi=0,xl=xs.length,x0;
+xi<xl;
+ ++xi)x=xs[xi] , (x.pattern.test(s) ) &&xr.push(x) ;
+return xr} ) .call(this,compiled_regexps) } ,variable_sets_for=function( /* unary , node */s) {;
+return(function(xs) {var x,x0,xi,xl,xr;
+for(var xr=new xs.constructor() ,xi=0,xl=xs.length;
+xi<xl;
+ ++xi)x=xs[xi] ,xr.push( ( {f:x.f,vars:make_variable_table(x.pattern.exec(s) ,x.variables) } ) ) ;
+return xr} ) .call(this,matching_patterns(s) ) } ,parse=function( /* unary , node */s) {;
+return(function(it) {return(it[0] ) } ) .call(this, ( (function(xs) {var x,x0,xi,xl,xr;
+for(var xr=new xs.constructor() ,xi=0,xl=xs.length,x0;
+xi<xl;
+ ++xi)x=xs[xi] , (x!==undefined) &&xr.push(x) ;
+return xr} ) .call(this, (function(xs) {var x,x0,xi,xl,xr;
+for(var xr=new xs.constructor() ,xi=0,xl=xs.length;
+xi<xl;
+ ++xi)x=xs[xi] ,xr.push( (x.f(x.vars) ) ) ;
+return xr} ) .call(this,variable_sets_for(s) ) ) ) ) } ;
+return(this.modus( (function(nothing) {return parse(this.modus( 'val' ) ) } ) , (function(value) {return this.modus( 'val' ,serialize(value) ) } ) ) ) } ) .call(this) } ,$.modus.name=function( /* unary , node */) {;
+return this} ,$.modus.email=function( /* unary , node */) {;
+return this} ,$.modus.phone=function( /* unary , node */) {;
+return this} ,$.modus.address=function( /* unary , node */) {;
+return this} , (function(it) {return(it.named_months= 'january february march april may june july august september october november december' .split( /\s+/ ) ,it.named_times= {midnight: '12:00 AM' ,noon: '12:00 PM' } ,it.time_formats= [ '_name' , '_hh:_mm _ap' , '_hh:_mm:_ss _ap' , '_hh:_mm_ap' , '_hh:_mm:_ss_ap' , '_HH:_mm' , '_HH:_mm:_ss' , '_hh_ap' , '_hh _ap' ] ,it.date_formats= [ '_month _dd, _yyyy' , '_month _dd _yyyy' , '_dd _month, _yyyy' , '_dd _month _yyyy' , '_yyyy _ddd _month' , '_yyyy _month _dd' , '_yyyy._mm_dd' , '_mm/_dd/_yyyy' , '_mm-_dd-_yyyy' , '_month _dd' , '_dd _month' , '_dd/_mm' , '_dd-_mm' ] ,it.date_with_time_formats= [ '_date at _time' , '_date _time' , '_time on _date' , '_time _date' , '_date._time' , '_date' ] ,it.named_month=function( /* unary , node */m) {;
+return(function(it) {return(it.length===1?it[0] :undefined) } ) .call(this, ( (function(xs) {var x,x0,xi,xl,xr;
+for(var xr=new xs.constructor() ,xi=0,xl=xs.length,x0,_y;
+xi<xl;
+ ++xi)x=xs[xi] , (_y= (x.indexOf(m.toLowerCase() ) ===0&&new Number(xi) ) ) &&xr.push(_y) ;
+return xr} ) .call(this,it.named_months) ) ) } ,it.parse_year=function( /* unary , node */y) {;
+return/\d{4}/ .test(y) ?Number(y) : /\d{2}/ .test(y) ?Number(y) +1970:undefined} ,it.milliseconds=function(h,m,s) {;
+return( ( (h*60) +m) *60+s) *1000} ,it.date_from_match=function( /* unary , node */match) {;
+return(function( ) {var year=match._yyyy?it.parse_year(match._yyyy) :new Date() .getFullYear() ,month=match._month?it.named_month(match._month) :Number(match._mm) -1,day=match._dd&&Number(match._dd) ;
+return(year!==undefined&&month!==undefined&&day!==undefined?new Date(year,month,day) :undefined) } ) .call(this) } ,it.time_from_match=function( /* unary , node */match) {;
+return match._name?it.time_from_match(it.named_times[match._name] ) :match._mm_ap?it.time_from_match( ( '' + (it._hh) + ':' + (it._mm_ap.substr(0,2) ) + ' ' + (it._mm_ap.substr(2) ) + '' ) ) :match._ss_ap?it.time_from_match( ( '' + (it._hh) + ':' + (it._mm) + ':' + (it._ss_ap.substr(0,2) ) + ' ' + (it._ss_ap.substr(2) ) + '' ) ) :match._hh_ap?it.time_from_match( ( '' + (it._hh_ap.substr(0,2) ) + ' ' + (it._hh_ap.substr(2) ) + '' ) ) :match._HH?it.milliseconds(Number(match._HH) ,Number(match._mm) ||0,Number(match._ss) ||0) :match._ap?it.milliseconds(Number(match._hh) %12+ ( /^p/i .test(match._ap) ?12:0) ,Number(match._mm) ||0,Number(match._ss) ||0) :undefined} ,it.parse_date_time=function( /* unary , node */match) {;
+return(function( ) {var date=it.date_from_match(match) ,time=it.time_from_match(match) ;
+return(date!==undefined?new Date( +date+ +time) :undefined) } ) .call(this) } ,it.serialize_time=function( /* unary , node */d) {;
+return( '' + (it.getHours() %12||12) + ':' + (it.getMinutes() ) + ' ' + (it.getHours() >=12? "PM" : "AM" ) + '' ) } ,it.serialize_date=function( /* unary , node */d) {;
+return( '' + (d.getDays() ) + ' ' + (it.named_months[d.getMonth() ] ) + ' ' + (it.getFullYear() ) + '' ) + (d.getHours() ===0&&d.getMinutes() ===0? '' : ( ' ' + (it.serialize_time(d) ) + '' ) ) } ,it.date_patterns=function( /* unary , node */) {;
+return(function( ) {var pairings= (function(it.date_formats) {var _x,_x0,_xi,_xl,_xr;
+for(var _xr= (it.time_formats) ,pairs= [ ] ,i_5_HP6DNrvwYjFpqdsPVbRqmt=0,l_7_HP6DNrvwYjFpqdsPVbRqmt=it.date_formats.length,lj_8_HP6DNrvwYjFpqdsPVbRqmt=_xr.length;
+i_5_HP6DNrvwYjFpqdsPVbRqmt<l_7_HP6DNrvwYjFpqdsPVbRqmt;
+ ++i_5_HP6DNrvwYjFpqdsPVbRqmt)for(var j_6_HP6DNrvwYjFpqdsPVbRqmt=0;
+j_6_HP6DNrvwYjFpqdsPVbRqmt<lj_8_HP6DNrvwYjFpqdsPVbRqmt;
+ ++j_6_HP6DNrvwYjFpqdsPVbRqmt)pairs.push( [it.date_formats[i_5_HP6DNrvwYjFpqdsPVbRqmt] ,_xr[j_6_HP6DNrvwYjFpqdsPVbRqmt] ] ) ;
+return pairs} ) .call(this,_s) ,all_dates_and_times=function( /* unary , node */format) {;
+return(function(xs) {var x,x0,xi,xl,xr;
+for(var xr=new xs.constructor() ,xi=0,xl=xs.length;
+xi<xl;
+ ++xi)x=xs[xi] ,xr.push.apply(xr,Array.prototype.slice.call( ( (function(ps) {var p,p0,pi,pl,pr;
+for(var pr=new ps.constructor() ,pi=0,pl=ps.length;
+pi<pl;
+ ++pi)p=ps[pi] ,pr.push( (x.replace( /_date/ ,p[0] ) .replace( /_time/ ,p[1] ) ) ) ;
+return pr} ) .call(this,pairings) ) ) ) ;
+return xr} ) .call(this,it.date_with_time_formats) } ,unique_strings_in=function( /* unary , node */xs) {;
+return(function(o) {var ks= [ ] ;
+for(var k in o)Object.prototype.hasOwnProperty.call(o,k) &&ks.push(k) ;
+return ks} ) .call(this, ( (function(o) {for(var r= { } ,i=0,l=o.length,x;
+i<l;
+ ++i)x=o[i] ,r[x[0] ] =x[1] ;
+return r} ) .call(this, ( (function(xs) {var x,x0,xi,xl,xr;
+for(var xr=new xs.constructor() ,xi=0,xl=xs.length;
+xi<xl;
+ ++xi)x=xs[xi] ,xr.push( ( [x,true] ) ) ;
+return xr} ) .call(this,xs) ) ) ) ) } ;
+return(unique_strings_in( (function(xs) {var x,x0,xi,xl,xr;
+for(var xr=new xs.constructor() ,xi=0,xl=xs.length;
+xi<xl;
+ ++xi)x=xs[xi] ,xr.push.apply(xr,Array.prototype.slice.call( (all_dates_and_times(x) ) ) ) ;
+return xr} ) .call(this,it.date_with_time_formats) ) ) } ) .call(this) } ,it.time_parsers=function( /* unary , node */) {;
+return(function(o) {for(var r= { } ,i=0,l=o.length,x;
+i<l;
+ ++i)x=o[i] ,r[x[0] ] =x[1] ;
+return r} ) .call(this, ( (function(xs) {var x,x0,xi,xl,xr;
+for(var xr=new xs.constructor() ,xi=0,xl=xs.length;
+xi<xl;
+ ++xi)x=xs[xi] ,xr.push( ( [x,it.time_from_match] ) ) ;
+return xr} ) .call(this,it.time_formats) ) ) } ,it.date_parsers=function( /* unary , node */) {;
+return(function(o) {for(var r= { } ,i=0,l=o.length,x;
+i<l;
+ ++i)x=o[i] ,r[x[0] ] =x[1] ;
+return r} ) .call(this, ( (function(xs) {var x,x0,xi,xl,xr;
+for(var xr=new xs.constructor() ,xi=0,xl=xs.length;
+xi<xl;
+ ++xi)x=xs[xi] ,xr.push( ( [x,it.parse_date_time] ) ) ;
+return xr} ) .call(this,it.date_patterns() ) ) ) } ) ,it} ) .call(this, ($.modus.util) ) ,$.modus.date=function( /* unary , node */) {;
+return this.formatted($.modus.util.date_parsers() ,$.modus.util.serialize_date) } ,$.modus.time=function( /* unary , node */) {;
+return this.formatted($.modus.util.time_parsers() ,$.modus.util.serialize_time) } ,$.modus.username=function( /* unary , node */) {;
+return this} ,$.modus.password=function( /* unary , node */) {;
+return this.attr( 'type' , 'password' ) } ,$.modus.hashed_password=function( /* unary , node */) {;
+return this.attr( 'type' , 'password' ) .modus( (function(t,f) {return(function( ) {return f.call(t) } ) } ) (this, (function( ) {return kevlar.encode85(kevlar.sha256(this.val() ) ) } ) ) , (function(p) {return(function( ) {throw'cannot set password' } ) .call(this) } ) ) } } ) ;

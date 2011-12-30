@@ -4,12 +4,12 @@
   <title>Modus test page</title>
   <script src='http://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.js'></script>
   <script src='http://caterwauljs.org/build/caterwaul.js'></script>
-  <script src='http://caterwauljs.org/build/extensions/std.pre.js'></script>
-  <script src='http://caterwauljs.org/build/extensions/ui.pre.js'></script>
+  <script src='http://caterwauljs.org/build/caterwaul.std.js'></script>
+  <script src='http://caterwauljs.org/build/caterwaul.ui.js'></script>
   <script src='../modus.js'></script>
 
   <script>
-    $(caterwaul.js_ui(caterwaul.js_all())(function () {
+    $(caterwaul('js_all jquery')(function () {
       $('body').append(list_of_people().val([{name: 'Spencer', email: 'spencer@spencertipping.com'}, {name: 'Joyce', email: 'joyce@joycetipping.com'}]),
                        jquery in button('New person') /click(add_person),
                        jquery in button('Show value') /click(show_value),
