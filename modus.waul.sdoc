@@ -67,8 +67,8 @@ Modus provides combinators to handle the most common cases of component nesting.
 
   You can use ambiguous paths; if you do this, the first matching element will be chosen.
 
-    it.composite(paths) = this.modus(given.nothing in paths /keys  *[[x, find(this, paths[x]).first().val()]] /object /seq,
-                                     given.xs      in paths /pairs *![find(this, paths[x[0]]).first().val(x[1])] /seq -re- this),
+    it.composite(paths) = this.modus(given.nothing in paths /keys *[[x, find(this, paths[x]).first().val()]] /object /seq,
+                                     given.o       in paths %k*!   [find(this, paths[x]).first().val(o[x])] /seq /then.this),
 
     where [find(container, path) = path.constructor === String   ? container.filter(path).add(container.find(path)) :
                                    path.constructor === Function ? path(container) : raise [new Error('invalid modus path: #{path}')]]]});
