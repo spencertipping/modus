@@ -31,19 +31,20 @@ gets more interesting with nonterminals.
 Nonterminal combinators.
 Modus provides combinators to handle the most common cases of component nesting.
 
-  $.modus = {util: {}} -se [
+  $.modus = capture [
+    util = {},
 
   Original value access.
   Terminal combinators need this to avoid causing an infinite loop.
 
-    it.val() = original_jquery_val.apply(this, arguments),
+    val() = original_jquery_val.apply(this, arguments),
 
   Delegate combinator.
   This lets you build a proxy component that has no component associated with it. This works because modus uses duck typing for the jQuery components below; all we need to do is implement a
   fake first() method to return 'this'.
 
-    it.delegate(getter, setter) = {} -se [it.first() = it, it.val() = arguments.length ? setter.apply(this, arguments) -re- this :
-                                                                                         getter.apply(this, arguments)],
+    delegate(getter, setter) = {} -se [it.first() = it, it.val() = arguments.length ? setter.apply(this, arguments) -then- this :
+                                                                                      getter.apply(this, arguments)],
 
   List combinator.
   Let's suppose we want to present the user with a bunch of yes/no boxes and manage their values as an array. One way to do this would be to write the nesting out longhand, but it's easier to
@@ -55,8 +56,8 @@ Modus provides combinators to handle the most common cases of component nesting.
 
   The new_element constructor receives a copy of the value. This is useful if you're using value polymorphism.
 
-    it.list(new_element) = this.modus(given.nothing in +this.children() *[$(x).val()] /seq,
-                                      given.xs      in this.empty() -se- xs *![it.append(new_element(x).val(x))] /seq),
+    list(new_element) = this.modus("+this.children() *[$(x).val()] /seq".qf,
+                                   "this.empty() -se- _ *![it.append(new_element(x).val(x))] /seq".qf),
 
   Composite combinator.
   This lets you build up a component hierarchy and represent an object of state. For example, suppose we want to represent a person's name and e-mail address. Here's how that might be done:
@@ -67,8 +68,8 @@ Modus provides combinators to handle the most common cases of component nesting.
 
   You can use ambiguous paths; if you do this, the first matching element will be chosen.
 
-    it.composite(paths) = this.modus(given.nothing in paths /keys *[[x, find(this, paths[x]).first().val()]] /object /seq,
-                                     given.o       in paths %k*!   [find(this, paths[x]).first().val(o[x])] /seq /then.this),
+    composite(paths) = this.modus("paths /keys *[[x, find(this, paths[x]).first().val()]] /object /seq".qf,
+                                  "paths %k*!   [find(this, paths[x]).first().val(_[x])] /seq /then.this".qf),
 
     where [find(container, path) = path.constructor === String   ? container.filter(path).add(container.find(path)) :
                                    path.constructor === Function ? path(container) : raise [new Error('invalid modus path: #{path}')]]]});
