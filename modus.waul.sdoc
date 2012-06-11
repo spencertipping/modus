@@ -43,8 +43,9 @@ Modus provides combinators to handle the most common cases of component nesting.
   This lets you build a proxy component that has no component associated with it. This works because modus uses duck typing for the jQuery components below; all we need to do is implement a
   fake first() method to return 'this'.
 
-    delegate(getter, setter) = {} -se [it.first() = it, it.val() = arguments.length ? setter.apply(this, arguments) -then- this :
-                                                                                      getter.apply(this, arguments)],
+    delegate(getter, setter) = capture [first() = this,
+                                        val()   = arguments.length ? setter.apply(this, arguments) -then- this :
+                                                                     getter.apply(this, arguments)],
 
   List combinator.
   Let's suppose we want to present the user with a bunch of yes/no boxes and manage their values as an array. One way to do this would be to write the nesting out longhand, but it's easier to

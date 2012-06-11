@@ -9,10 +9,10 @@ return(function(it) {return it?args.length?it.setter.apply(this,args)
 return getter.constructor===String?use_named_combinator(this,arguments) 
 :this.data( 'modus' , {getter:getter,setter:setter} ) } } ) .call(this) ,$.modus= {util: {} ,val:function() {;
 return original_jquery_val.apply(this,arguments) } ,delegate:function(getter,setter) {;
-return(function(it) {return it.first=function() {;
-return it} ,it.val=function() {;
+return{first:function() {;
+return this} ,val:function() {;
 return arguments.length? (setter.apply(this,arguments) ,this) 
-:getter.apply(this,arguments) } ,it} ) .call(this, ( {} ) ) } ,list:function(new_element) {;
+:getter.apply(this,arguments) } } } ,list:function(new_element) {;
 return this.modus(function(_) {return(function(xs) {var x,x0,xi,xl,xr;
 for(var xr=new xs.constructor() ,xi=0,xl=xs.length;
 xi<xl;
