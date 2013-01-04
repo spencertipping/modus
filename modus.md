@@ -60,10 +60,10 @@ use the list combinator:
     my_list = list_of_boxes().val([true, false, false]);        // populates the list with three text boxes and sets their values
     my_list.val()                                               // -> [true, false, false]
 
-The new_element constructor receives a copy of the value. This is useful if you're using value polymorphism.
+The new_element constructor receives a copy of the value and that value's index within its collection. This is useful if you're using value polymorphism.
 
       list(new_element) = this.modus("+this.children() *[$(x).val()] /seq".qf,
-                                     "this.empty() -se- _ *![new_element(x).val(x) /!it.append] /seq".qf),
+                                     "this.empty() -se- _ *![new_element(x, xi).val(x) /!it.append] /seq".qf),
 
 ## Composite combinator
 
