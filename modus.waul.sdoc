@@ -47,6 +47,11 @@ Modus provides combinators to handle the most common cases of component nesting.
                                         val()   = arguments.length ? setter.apply(this, arguments) -then- this :
                                                                      getter.apply(this, arguments)],
 
+  Proxy combinator.
+  Allows you to have a component whose value comes from somewhere else.
+
+    proxy(element) = this.modus("element.val()".qf, "element.val(_)".qf),
+
   List combinator.
   Let's suppose we want to present the user with a bunch of yes/no boxes and manage their values as an array. One way to do this would be to write the nesting out longhand, but it's easier to
   use the list combinator:
