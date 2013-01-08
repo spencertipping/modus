@@ -55,7 +55,7 @@ fake first() method to return 'this'.
 
 Allows you to have a component whose value comes from somewhere else.
 
-      proxy(element) = this.modus("element.val()".qf, "element.val(_)".qf),
+      proxy(element) = this.modus("element.val()".qf, "element.val(_) -then- this".qf),
 
 ## List combinator
 
