@@ -48,9 +48,10 @@ Modus provides combinators to handle the most common cases of component nesting.
                                                                      getter.apply(this, arguments)],
 
   Proxy combinator.
-  Allows you to have a component whose value comes from somewhere else. The "somewhere else" can be a string, element-as-jQuery, or function.
+  Allows you to have a component whose value comes from somewhere else. The "somewhere else" can be a string, element-as-jQuery, or function (anything you can use as an object value for the
+  'composite' behavior).
 
-    proxy(element) = this.modus("find(this, element).val()".qf, "find(this, element).val(_) -then- this".qf),
+    proxy(element) = this.modus("find(this, element).val()".qf, "find(this, element).first().val(_) -then- this".qf),
 
   List combinator.
   Let's suppose we want to present the user with a bunch of yes/no boxes and manage their values as an array. One way to do this would be to write the nesting out longhand, but it's easier to
@@ -77,7 +78,7 @@ Modus provides combinators to handle the most common cases of component nesting.
     composite(paths) = this.modus("paths %v* [find(this, x).first().val()] /seq".qf,
                                   "paths %k*![find(this, paths[x]).first().val(_[x])] /seq /then.this".qf),
 
-    where [find(container, path) = path.constructor === String    ? container.filter(path) /~add/ container.find(path)
-                                 : path.constructor === Function  ? path(container)
-                                 : path.constructor === jQuery    ? path
+    where [find(container, path) = path.constructor === String   ? container.filter(path) /~add/ container.find(path)
+                                 : path.constructor === Function ? path(container)
+                                 : path.constructor === jQuery   ? path
                                  : raise [new Error('invalid modus path: #{path}')]]]});

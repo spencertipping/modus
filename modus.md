@@ -53,9 +53,10 @@ fake first() method to return 'this'.
 
 ## Proxy combinator
 
-Allows you to have a component whose value comes from somewhere else. The "somewhere else" can be a string, element-as-jQuery, or function.
+Allows you to have a component whose value comes from somewhere else. The "somewhere else" can be a string, element-as-jQuery, or function (anything you can use as an object value for the
+'composite' behavior).
 
-      proxy(element) = this.modus("find(this, element).val()".qf, "find(this, element).val(_) -then- this".qf),
+      proxy(element) = this.modus("find(this, element).val()".qf, "find(this, element).first().val(_) -then- this".qf),
 
 ## List combinator
 
@@ -84,7 +85,7 @@ You can use ambiguous paths; if you do this, the first matching element will be 
       composite(paths) = this.modus("paths %v* [find(this, x).first().val()] /seq".qf,
                                     "paths %k*![find(this, paths[x]).first().val(_[x])] /seq /then.this".qf),
 
-      where [find(container, path) = path.constructor === String    ? container.filter(path) /~add/ container.find(path)
-                                   : path.constructor === Function  ? path(container)
-                                   : path.constructor === jQuery    ? path
+      where [find(container, path) = path.constructor === String   ? container.filter(path) /~add/ container.find(path)
+                                   : path.constructor === Function ? path(container)
+                                   : path.constructor === jQuery   ? path
                                    : raise [new Error('invalid modus path: #{path}')]]]});
